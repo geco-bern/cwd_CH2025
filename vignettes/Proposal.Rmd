@@ -1,0 +1,30 @@
+---
+title: "Drought projections for Switzerland - Proposal"
+author: "Thomas Jucker"
+date: "8 October 2026"
+bibliography: references.bib  
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+# Drought projections for Switzerland - Proposal
+
+## Context
+
+## Objective
+
+Hypothese
+
+## Method
+use local dataset and not gridded. local includes radiation.
+Alternatively, use radiation indications from 3.6 scientific report
+
+definition of regions according to CH2025 scientific report 2.4
+
+## Scope
+CH2025 data. no validation or bias correction
+
+## Timeline

@@ -4,6 +4,8 @@ Evaluating the CH2025 climate projections for trends in drought, quantified usin
 
 use local dataset and not gridded. local includes radiation
 
+definition of regions according to CH2025 scientific report 2.4
+
 ## Project overview
 
 Contains data and code for creating:
