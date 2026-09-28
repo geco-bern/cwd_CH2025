@@ -1,6 +1,8 @@
 # Drought projections for Switzerland
 
-Evaluating the CH2025 climate projections for trends in drought, quantified using the potential cumulative water deficit (PCWD)
+Evaluating the CH2025 climate projections for trends in drought, quantified using the potential cumulative water deficit (PCWD). PCWD can be calculated using net radiation and the potential evapotranspiration (PET). Here, we calculate PET based on net radiation and the approach by Priestley & Taylor (1972) as implemented by Davis et al. (2017).
+
+use local dataset and not gridded. local includes radiation
 
 ## Project overview
 
