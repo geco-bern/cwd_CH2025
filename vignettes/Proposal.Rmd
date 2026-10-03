@@ -31,7 +31,7 @@ The Climate CH2025 datasets comprise daily time series of several meteorological
 Variable provision differs for stations and between DAILY-LOCAL and DAILY-GRIDDED, as is shown in the table below. The reason for the reduced set of variables in DAILY-GRIDDED is "the lack of a gridded observational dataset to serve as reference for the bias correction for the remaining three variables" @ClimateCH2025Datasets.
 
 | Variable name | Unit | DAILY-LOCAL (No. of stations) | DAILY- GRIDDED |
-|----|----|----|----|
+|------------------|------------------|------------------|------------------|
 | Daily mean 2m temperature | °C | provided (89) | provided |
 | Daily maximum 2m temperature | °C | provided (88) | provided |
 | Daily minimum 2m temperature | °C | provided (89) | provided |
@@ -52,7 +52,7 @@ m
 The following table indicates, which variables are needed to apply the *cwd* and *pet* function and their source:
 
 | Variable Desc. | required unit | calculation step | source | source name | source unit | source temp. res. |
-|----|----|----|----|----|----|----|
+|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
 | Daily precipitation sum | mm | Liquid to soil | CH2025 | pr | mm | daily |
 | Snow in liquid water equivalents | mm | Liquid to soil |  | snow | mm |  |
 | Daily mean 2m temperature | °C | Liquid to soil, PET | CH2025 | tas | °C | daily |
@@ -88,7 +88,21 @@ CH2025 DAILY-GRIDDED Data comes is provided on a 1km grid. Metadata indicates th
 
 ### Consolidation
 
-Once all the required variables are available, they will then be consolidated with the following workflow
+Once all the required variables are available, they will then be consolidated with the following workflow. For DAILY-LOCAL:
+
+1.  For every station, create a dataframe template for final cwd function with date and water balance for the 26 GCM- RCM combinations for GWLs 1.5, 2.0 and 2.5 and the 24 combinations for GWL3.0. I.e. 102 dataframes per station
+
+2.  Add *liquid to soil* column to all dataframes
+
+3.  Calculate liquid to soil by spliting precipitation into snow and rain and using simulate snow function
+
+4.  Add *PET* column to all dataframes
+
+5.  calculate PET using PET function
+
+6.  Calculate water balance: liquid to soil minus evapotranspiration
+
+7.  calculate cwd
 
 ### Regional aggregation
 
@@ -111,6 +125,8 @@ leaflet() |>
 ## Scope
 
 CH2025 data. no validation or bias correction
+
+No analysis performed on reference data 91-20
 
 wie ist shifts in snow accumulation and snowmelt in pcwd enthalten?
 
