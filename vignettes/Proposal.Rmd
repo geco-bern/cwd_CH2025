@@ -1,5 +1,5 @@
 ---
-title: "Drought projections for Switzerland - Proposal"
+title: "Drought projections for Switzerland - Thesis Proposal"
 author: "Thomas Jucker"
 date: "3 October 2026"
 bibliography: references.bib  
@@ -9,8 +9,6 @@ output:
     toc_depth: 3
     toc_float: true
 ---
-
-# Drought projections for Switzerland - Thesis Proposal
 
 ## Context
 
@@ -24,23 +22,16 @@ The aim of this thesis is to analyse the CH2025 climate projections for trends i
 
 ### Calculating PCWD
 
-The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Potential cumulative water deficit (PCWD, in mm) is calculated as the cumulative difference between potential evapotranspiration (PET, mm day^-1^) and liquid water infiltration into the root zone (P~in~, mm day^-1^). Following @stockerGlobalPatternsWater2023 and @helpapAreModernDroughts2026, the PCWD is accumulated during events of net water deficit (P~in~ − PET \< 0). An event ends and the sum is reset to zero when the PCWD falls 10 mm below its maximum within that event. The maximum PCWD and the duration (in days) of each event are stored. Also following @helpapAreModernDroughts2026, the Priestley‐Taylor Equation @priestleyAssessmentSurfaceHeat1972 is used to calculate PET, using α = 1.26 as coefficient. The above definitions of PCWD and PET are implemented in the cwd R package for cumulative water deficit calculation @stockerGecobernCwdCwd2026. The following table indicates, which variables are needed to apply the *cwd* and *pet* function and the source:
-
-| Variable Desc. | required unit | calculation step | source | source name | source unit | source temp. res. |
-|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
-| Daily precipitation sum | mm | Liquid to soil | CH2025 | pr | mm | daily |
-| Snow in liquid water equivalents | mm | Liquid to soil |  | snow | mm |  |
-| Daily mean 2m temperature | °C | Liquid to soil, PET | CH2025 | tas | °C | daily |
-| Daily mean global radiation | W/m2 | PET | CH2025 | rsds | W/m2 | daily |
-| Atmospheric pressure | Pa | PET | standart atmospheric pressure and elevation | patm | \- | \- |
-| Elevation a.s.l | m | Atmospheric Pressure | DHM25 | elv | m | \- |
+The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Potential cumulative water deficit (PCWD, in mm) is calculated as the cumulative difference between potential evapotranspiration (PET, mm day^-1^) and liquid water infiltration into the root zone (P~in~, mm day^-1^). Following @stockerGlobalPatternsWater2023 and @helpapAreModernDroughts2026, the PCWD is accumulated during events of net water deficit (P~in~ − PET \< 0). An event ends and the sum is reset to zero when the PCWD falls 10 mm below its maximum within that event. The maximum PCWD and the duration (in days) of each event are stored. Also following @helpapAreModernDroughts2026, the Priestley‐Taylor Equation @priestleyAssessmentSurfaceHeat1972 is used to calculate PET, using α = 1.26 as coefficient. The above definitions of PCWD and PET are implemented in the cwd R package for cumulative water deficit calculation @stockerGecobernCwdCwd2026.
 
 ### CH2025 Data Structure
 
-The Climate CH2025 datasets comprise daily time series of several meteorological variables at stations (DAILY-LOCAL) and on a high-resolution 1 km grid (DAILY-GRIDDED). Variable provision differs for stations and between DAILY-LOCAL and DAILY-GRIDDED, as is shown in the table below @ClimateCH2025Datasets.
+The Climate CH2025 datasets comprise daily time series of several meteorological variables at stations (DAILY-LOCAL) and on a high-resolution 1 km grid (DAILY-GRIDDED). DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full spatial and temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets. DAILY-GRIDDED data is provided as NetCDF files. Each file covers the full spatial and temporal extent. Files are a combination of a given variable, a given simulation and a given GWL. I.e. the NetCDF File for precipitation with the simulation clmcom-cclm4-cccma is *ogd-climate-scenarios-ch2025-grid_ch_pr_clmcom-cclm4-cccma_gwl1.5.nc.* Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets.
+
+Variable provision differs for stations and between DAILY-LOCAL and DAILY-GRIDDED, as is shown in the table below. The reason for the reduced set of variables in DAILY-GRIDDED is "the lack of a gridded observational dataset to serve as reference for the bias correction for the remaining three variables" @ClimateCH2025Datasets.
 
 | Variable name | Unit | DAILY-LOCAL (No. of stations) | DAILY- GRIDDED |
-|------------------|------------------|------------------|------------------|
+|----|----|----|----|
 | Daily mean 2m temperature | °C | provided (89) | provided |
 | Daily maximum 2m temperature | °C | provided (88) | provided |
 | Daily minimum 2m temperature | °C | provided (89) | provided |
@@ -49,45 +40,71 @@ The Climate CH2025 datasets comprise daily time series of several meteorological
 | Daily mean relative humidity | \% | provided (88) | not provided |
 | Daily mean 10m wind speed | m/s | provided (87) | not provided |
 
-Below is an overview of which variable is available for which station
+Below is an overview of which variable is available for which station in the DAILY-LOCAL dataset
 
 ```{r station-map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
 source(here::here("R", "stations_overview_local.R"), local = knitr::knit_global())
 m
 ```
 
-DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full spatial and temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets.
+### Required meteorological variables
 
-DAILY-GRIDDED data are provided as NetCDF files. Each file covers the full spatial and temporal extent. Files are a combination of a given variable, a given simulation and a given GWL. I.e. the NetCDF File for precipitation with the simulation clmcom-cclm4-cccma is *ogd-climate-scenarios-ch2025-grid_ch_pr_clmcom-cclm4-cccma_gwl1.5.nc.* Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets.
+The following table indicates, which variables are needed to apply the *cwd* and *pet* function and their source:
 
-### Precipitation
+| Variable Desc. | required unit | calculation step | source | source name | source unit | source temp. res. |
+|----|----|----|----|----|----|----|
+| Daily precipitation sum | mm | Liquid to soil | CH2025 | pr | mm | daily |
+| Snow in liquid water equivalents | mm | Liquid to soil |  | snow | mm |  |
+| Daily mean 2m temperature | °C | Liquid to soil, PET | CH2025 | tas | °C | daily |
+| Daily mean global radiation | W/m2 | PET | CH2025 | rsds | W/m2 | daily |
+| Atmospheric pressure | Pa | PET | standart atmospheric pressure and elevation | patm | \- | \- |
+| Elevation a.s.l | m | Atmospheric Pressure | DHM25 | elv | m | \- |
 
-Precipitation can be used directly from both
+#### Precipitation
 
-### Radiation
+Precipitation in mm can be used directly from the CH2025 DAILY-LOCAL and DAILY-GRIDDED data sets.
 
-After a direct inquiry by email at Meteoswiss, it was confirmed that "*for RSDS, there are no gridded observational data that can be used as a reference for quantile mapping of climate model simulations. Such gridded observational data are available only for temperature and precipitation; therefore, DAILY-GRIDDED is also available only for these variables.*"
+#### Snow
 
-### Elevation
+Snow, as required to calculate liquid to soil, is not available directly from the CH2025 datasets. I apply the same method as @helpapAreModernDroughts2026 to solve this, splitting precipitation into rain (for days with mean temperature \> 1 °C) and snow (for days with mean temperature \< 1 °C). These variables are then fed into *simulate_snow* function of the *cwd* R package.
 
-CH2025 DAILY-GRIDDED Data comes is provided on a 1km grid. Metadata indicates that spatial resolution only covers the x and y axis, making it a two dimensional spatial representation. However, to calculate atmospheric pressure, which in turn is needed to calculate PET, elevation is needed. A raster is created matching the CH2025 DAILY-GRIDDED scale from the digital height model DHM25. DHM25 has a grid size of 200m with altitude interpolated from the landeskarte 1:25000. Since DHM25 doesn't cover the full spatial extent of CH2025 DAILY-GRIDDED, a mismatch results. The mismatch is deemed irrelevant.
+#### Temperature
+
+Temperature in °C can be used directly from the CH2025 DAILY-LOCAL and DAILY-GRIDDED data sets.
+
+#### Radiation
+
+Radiation in W/m2 can be used directly from the CH2025 DAILY-LOCAL dataset.
+
+#### Atmospheric Pressure
+
+Atmospheric Pressure, as required to calculate PET, is not provided by the CH2025 DAILY-LOCAL and DAILY-GRIDDED data sets. I follow @helpapAreModernDroughts2026 approach, using the standard atmospheric pressure subject to elevation.
+
+#### Elevation
+
+CH2025 DAILY-GRIDDED Data comes is provided on a 1km grid. Metadata indicates that spatial resolution only covers the x and y axis, making it a two dimensional spatial representation. However, to calculate atmospheric pressure, elevation is needed. A raster is created matching the CH2025 DAILY-GRIDDED scale from the digital height model DHM25. DHM25 has a grid size of 200m with altitude interpolated from the landeskarte 1:25000. Since DHM25 doesn't cover the full spatial extent of CH2025 DAILY-GRIDDED, a mismatch results. The mismatch is deemed irrelevant.
 
 ![](images/mismatch_climate_vs_elevation.jpg)
 
-### Snow Pack
+### Consolidation
 
-- overview of variables needed
-- use outputs from CH2025
-- Describe output data local mit karte
-- explain why not use gridded
-- defining regions
-- analyse spatial and temporal variations
+Once all the required variables are available, they will then be consolidated with the following workflow
 
-use local dataset and not gridded. local includes radiation. Alternatively, use radiation indications from 3.6 scientific report
+### Regional aggregation
 
-definition of regions according to CH2025 scientific report 2.4
+With PCWD calculated either on a 1km grid using DAILY-GRIDDED or for DAILY-LOCAL, the results will be aggregated spatially, applying the definition for biogeographic regions as in @ClimateCH2025Scientific.
 
-workflows
+```{r biogeo-map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
+library(leaflet)
+
+leaflet() |>
+  addProviderTiles(providers$Esri.WorldGrayCanvas) |>
+  addWMSTiles("https://wms.geo.admin.ch/",
+              layers      = "ch.bafu.biogeographische_regionen",
+              options     = WMSTileOptions(format = "image/png", transparent = TRUE, opacity = 0.7),
+              attribution = "Biogeographical regions: FOEN (BAFU) / geo.admin.ch") |>
+  setView(lng = 8.2, lat = 46.8, zoom = 8)
+```
 
 ## Proof of Concept
 
