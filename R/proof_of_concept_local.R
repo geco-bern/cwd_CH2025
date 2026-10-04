@@ -111,7 +111,7 @@ for (station in stations) {
                     snow           = NA_real_,   # precipitation falling as snow, water equivalent (mm/day)
                     snow_pool      = NA_real_,   # snow mass (mm water equivalent)
                     liquid_to_soil = NA_real_,   # rain + snowmelt (mm/day)
-                    patm           = NA_real_,   # atmospheric pressure (hPa)
+                          patm           = NA_real_,   # atmospheric pressure (Pa)
                     pet            = NA_real_,   # potential evapotranspiration (mm/day)
                     wbal           = NA_real_),  # liquid_to_soil - pet
              envir = globalenv())
@@ -328,3 +328,53 @@ if (length(skipped) > 0) {
   message(paste0("  ", skipped, collapse = "\n"))
 }
 
+# ------------------------------------------------------------------
+# Step 5: calculate atmospheric pressure from station elevation
+#
+# The standard-atmosphere pressure is calculated once per station and
+# copied to every model simulation and warming level for that station.
+# Pressure is in Pa, as required by cwd::pet().
+# ------------------------------------------------------------------
+
+meta_file <- here("data-raw", "CH2025", "DAILY_LOCAL",
+                  "ogd-climate-scenarios-ch2025_meta_stations.csv")
+station_meta <- read.delim(meta_file, sep = ";", fileEncoding = "UTF-8-BOM",
+                           check.names = FALSE, stringsAsFactors = FALSE)
+station_meta$station_abbr <- toupper(trimws(station_meta$station_abbr))
+
+if (anyDuplicated(station_meta$station_abbr))
+  stop("Duplicate station abbreviations in metadata: ", meta_file)
+
+object_names <- ls(pattern = "^CH2025_", envir = globalenv())
+
+for (station in stations) {
+  station_code <- toupper(trimws(station))
+  station_row <- station_meta[station_meta$station_abbr == station_code, , drop = FALSE]
+  if (nrow(station_row) != 1)
+    stop("Expected one metadata row for station ", station_code,
+         "; found ", nrow(station_row))
+
+  elevation_m <- as.numeric(station_row$station_height_masl[[1]])
+  if (!is.finite(elevation_m))
+    stop("Invalid station_height_masl for station ", station_code)
+
+  # International Standard Atmosphere in the troposphere.
+  pressure_pa <- 101325 * (1 - 0.0065 * elevation_m / 288.15)^5.25588
+
+  station_prefix <- paste0("CH2025_", station_code, "_")
+  station_objects <- object_names[startsWith(object_names, station_prefix)]
+  if (length(station_objects) == 0)
+    stop("No CH2025 data frames found for station ", station_code)
+
+  for (nm in station_objects) {
+    d <- get(nm, envir = globalenv())
+    d$patm <- rep(pressure_pa, nrow(d))
+    assign(nm, d, envir = globalenv())
+  }
+
+  message(station_code, ": elevation = ", elevation_m,
+          " m a.s.l.; patm = ", round(pressure_pa, 1), " Pa; ",
+          length(station_objects), " data frames updated")
+}
+
+View(CH2025_EVO_CLMCOM_CCLM4_CCCMA_GWL_1_5)
