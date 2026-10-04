@@ -94,8 +94,22 @@ Once all the required variables are available, they will then be consolidated wi
 
 2.  For every station, create one dataframe template for final cwd calculation for each of the 26 GCM- RCM combinations for GWLs 1.5, 2.0 and 2.5 and each of the 24 combinations for GWL3.0. I.e. 102 unique dataframes per station. Fill template with a column for every required variable, with the correct unit and temporal resolution. Each dataframe will have 10,950 rows (30 years x 365 days) and 10 columns (date, pr, tas, rsds, rain, snow, snow_pool, liquid_to_soil, pet, wbal). The dataframes will be filled with NA values.
 
-3.  Fill dataframe with precipitation, temperature and radiation data from CH2025 DAILY-LOCAL dataset. Conduct quality control on the filled dataframes, checking for missing values. Missing values will be filled with the mean of the respective variable for that station and GWL (tbd)
+3.  Fill dataframe with precipitation, temperature and radiation data from CH2025 DAILY-LOCAL dataset. Conduct quality control on the filled dataframes, checking for missing values. Simulations for pr, tas and rsds involving HADGEM are consistently missing 5 values per year, randomly distributed over the year. These missing values will be filled with the mean of the respective variable for that station and GWL (tbd). A summary of the missing values is indicated below.
 
+```{r qc-table, echo=FALSE}
+qc <- read.csv(here::here("tables", "qc_missing_pr.csv"))
+knitr::kable(qc, caption = "Missing daily precipitation values per data frame (before replacement).")
+```
+
+```{r qc-table, echo=FALSE}
+qc <- read.csv(here::here("tables", "qc_missing_tas.csv"))
+knitr::kable(qc, caption = "Missing daily temperature values per data frame (before replacement).")
+```
+
+```{r qc-table, echo=FALSE}
+qc <- read.csv(here::here("tables", "qc_missing_rsds.csv"))
+knitr::kable(qc, caption = "Missing daily shortwave radiation values per data frame (before replacement).")
+```
 4.  Calculate liquid to soil by splitting precipitation into snow and rain (temperature threshold 0 °C) and applying the *simulate_snow* function to fill in rain, snow, snow_pool and liquid_to_soil columns.
 
 5.  Calculate atmospheric pressure using the standard atmospheric pressure subject to elevation.

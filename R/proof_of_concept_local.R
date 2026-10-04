@@ -132,11 +132,12 @@ for (station in stations) {
 #
 # ------------------------------------------------------------------
 
+
 # ---- Settings ---------------------------------------------------
 # warming level as written in the object names and in the file names
 gwl_in_file <- c(GWL_1_5 = "1.5", GWL_2 = "2.0", GWL_2_5 = "2.5", GWL_3 = "3.0")
 
-# ---- Reader for the CH2025 csv files ----------------------------
+# ---- 2. Reader for the CH2025 csv files ----------------------------
 # The files start with metadata lines; the table starts at the line "DATE;..."
 read_ch2025 <- function(path) {
   lines <- readLines(path, encoding = "UTF-8", warn = FALSE)
@@ -185,10 +186,97 @@ fill_variable <- function(var) {
   }
 }
 
-# ---- Run for pr, tas and rsds ----------------------------------------------------------
+# ---- Quality control: missing values --------------------------------
+# For one variable: counts the missing values per data frame and per year, then
+# replaces them with the mean of the same year (within the same data frame).
+# Returns the table of missing values as it was BEFORE the replacement.
+qc_missing <- function(var) {
+  res <- list()
+
+  for (nm in ls(pattern = "^CH2025_", envir = globalenv())) {
+    d  <- get(nm, envir = globalenv())
+    na <- is.na(d[[var]])
+
+    if (all(na)) stop(nm, ": ", var, " is empty, run fill_variable(\"", var, "\") first")
+    if (!any(na)) next
+
+    # missing values per year
+    year   <- as.integer(format(d$date, "%Y"))
+    n_year <- tapply(na, year, sum)
+    n_year <- n_year[n_year > 0]
+    res[[nm]] <- data.frame(dataframe = nm, variable = var,
+                            year      = as.integer(names(n_year)),
+                            n_missing = as.integer(n_year))
+
+    # replace missing values with the yearly mean
+    year_mean   <- ave(d[[var]], year, FUN = function(x) mean(x, na.rm = TRUE))
+    d[[var]][na] <- year_mean[na]
+    if (anyNA(d[[var]])) stop(nm, ": a whole year is missing, no yearly mean possible")
+    assign(nm, d, envir = globalenv())
+  }
+
+  if (length(res) == 0) {
+    message("No missing values in ", var)
+    return(invisible(NULL))
+  }
+  out <- do.call(rbind, res)
+  rownames(out) <- NULL
+  message(var, ": missing values replaced in ", length(res), " data frames")
+  out
+}
+
+# compact version: one row per data frame
+qc_summarise <- function(tab) {
+  tab |>
+    dplyr::group_by(dataframe, variable) |>
+    dplyr::summarise(total          = sum(n_missing),
+                     years_affected = dplyr::n(),
+                     max_per_year   = max(n_missing),
+                     .groups = "drop")
+}
+
+# ---- 5. Run ----------------------------------------------------------
+# for precipitation
 fill_variable("pr")
+qc_pr <- qc_missing("pr")          # long table: data frame x year (before replacement)
+
+if (!is.null(qc_pr)) {
+  qc_pr_summary <- qc_summarise(qc_pr)     # short table: one row per data frame
+  print(qc_pr_summary)
+
+  # save the tables so that Proposal.Rmd can read them
+  dir.create(here("tables"), showWarnings = FALSE)
+  write.csv(qc_pr,         here("tables", "qc_missing_pr_per_year.csv"), row.names = FALSE)
+  write.csv(qc_pr_summary, here("tables", "qc_missing_pr.csv"),          row.names = FALSE)
+}
+
+# for temperature
 fill_variable("tas")
+qc_tas <- qc_missing("tas")          # long table: data frame x year (before replacement)
+
+if (!is.null(qc_tas)) {
+  qc_tas_summary <- qc_summarise(qc_tas)     # short table: one row per data frame
+  print(qc_tas_summary)
+
+  # save the tables so that Proposal.Rmd can read them
+  dir.create(here("tables"), showWarnings = FALSE)
+  write.csv(qc_tas,         here("tables", "qc_missing_tas_per_year.csv"), row.names = FALSE)
+  write.csv(qc_tas_summary, here("tables", "qc_missing_tas.csv"),          row.names = FALSE)
+}
+
+# for shortwave radiation
 fill_variable("rsds")
+qc_rsds <- qc_missing("rsds")          # long table: data frame x year (before replacement)
+
+if (!is.null(qc_rsds)) {
+  qc_rsds_summary <- qc_summarise(qc_rsds)     # short table: one row per data frame
+  print(qc_rsds_summary)
+
+  # save the tables so that Proposal.Rmd can read them
+  dir.create(here("tables"), showWarnings = FALSE)
+  write.csv(qc_rsds,         here("tables", "qc_missing_rsds_per_year.csv"), row.names = FALSE)
+  write.csv(qc_rsds_summary, here("tables", "qc_missing_rsds.csv"),          row.names = FALSE)
+}
 
 # ------------------------------------------------------------------
 # Step 4: rain/snow split and snow routine
