@@ -120,3 +120,72 @@ for (station in stations) {
   n <- length(ls(envir = globalenv(), pattern = paste0("^CH2025_", toupper(station), "_")))
   message(station, ": ", n, " data frames created")      # expect 102
 }
+
+# ------------------------------------------------------------------
+# Step 3: fill a variable (pr, tas or rsds) into the data frames from step 2
+#
+# For every station folder in data-raw/CH2025/DAILY_LOCAL/ and every warming
+# level, the file
+#   ogd-climate-scenarios-ch2025_[station]_[var]_gwl[x].csv
+# is read once. Each model column is copied into the column `var` of the
+# matching data frame CH2025_[STATION]_[MODEL]_GWL_[x].
+#
+# ------------------------------------------------------------------
+
+# ---- 1. Settings ---------------------------------------------------
+# warming level as written in the object names and in the file names
+gwl_in_file <- c(GWL_1_5 = "1.5", GWL_2 = "2.0", GWL_2_5 = "2.5", GWL_3 = "3.0")
+
+# ---- 2. Reader for the CH2025 csv files ----------------------------
+# The files start with metadata lines; the table starts at the line "DATE;..."
+read_ch2025 <- function(path) {
+  lines <- readLines(path, encoding = "UTF-8", warn = FALSE)
+  hdr   <- which(startsWith(lines, "DATE;"))[1]
+  out   <- read.delim(text = lines[hdr:length(lines)], sep = ";",
+                      check.names = FALSE, na.strings = c("", "NA", "NaN"))
+  out$DATE <- as.Date(out$DATE)      # years 0001-0030 are placeholders (365_day calendar)
+  attr(out, "unit") <- sub("^UNIT;", "", lines[startsWith(lines, "UNIT;")][1])
+  out
+}
+
+# ---- 3. Function: fill one variable into all data frames -------------
+fill_variable <- function(var) {
+  for (station in stations) {
+    for (g in names(gwl_in_file)) {
+
+      f <- file.path(dir_local, station,
+                     paste0("ogd-climate-scenarios-ch2025_", station, "_", var,
+                            "_gwl", gwl_in_file[[g]], ".csv"))
+      if (!file.exists(f)) stop("File not found: ", f, " (run step 1 for this station)")
+
+      x      <- read_ch2025(f)
+      models <- setdiff(names(x), "DATE")      # model names in the file use "-"
+
+      for (m in models) {
+        nm <- paste0("CH2025_", toupper(station), "_", gsub("-", "_", m), "_", g)
+        if (!exists(nm, envir = globalenv())) stop(nm, " does not exist, run step 2 first")
+
+        d <- get(nm, envir = globalenv())
+        if (length(d$date) != length(x$DATE) || !all(d$date == x$DATE))
+          stop(nm, ": dates in the data frame and in the file differ")
+
+        d[[var]] <- x[[m]]
+        assign(nm, d, envir = globalenv())
+      }
+
+      message(station, " | ", var, " | GWL ", gwl_in_file[[g]], ": ",
+              length(models), " models filled (unit: ", attr(x, "unit"), ")")
+
+      # models with missing days in this file
+      n_na <- colSums(is.na(x[models]))
+      if (any(n_na > 0))
+        message("   missing days: ",
+                paste0(names(n_na)[n_na > 0], " (", n_na[n_na > 0], ")", collapse = ", "))
+    }
+  }
+}
+
+# ---- 4. Run ----------------------------------------------------------
+fill_variable("pr")
+fill_variable("tas")
+fill_variable("rsds")
