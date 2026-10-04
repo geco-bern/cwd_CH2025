@@ -377,4 +377,25 @@ for (station in stations) {
           length(station_objects), " data frames updated")
 }
 
+# ------------------------------------------------------------------
+# Step 6: calculate potential evapotranspiration
+#
+# cwd::pet() returns PET in mm/s; convert it to mm/day before storing it.
+# ------------------------------------------------------------------
+
+pet_objects <- ls(pattern = "^CH2025_", envir = globalenv())
+
+for (nm in pet_objects) {
+  d <- get(nm, envir = globalenv())
+
+  if (any(!is.finite(d$rsds)) || any(!is.finite(d$tas)) ||
+      any(!is.finite(d$patm)))
+    stop(nm, ": rsds, tas, and patm must be finite before calculating PET")
+
+  d$pet <- cwd::pet(netrad = d$rsds, tc = d$tas, patm = d$patm) * 86400
+  assign(nm, d, envir = globalenv())
+}
+
+message(length(pet_objects), " data frames updated with PET (mm/day)")
+
 View(CH2025_EVO_CLMCOM_CCLM4_CCCMA_GWL_1_5)
