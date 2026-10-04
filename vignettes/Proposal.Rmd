@@ -22,7 +22,7 @@ The aim of this thesis is to analyse the CH2025 climate projections for trends i
 
 ### Calculating PCWD
 
-The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Daily soil water balance is calculated as (P_{\mathrm{in}} - \mathrm{PET}). Using the default settings of the cwd::cwd() function, cumulative water deficit increases during periods of negative water balance and an event ends when subsequent water surplus fully compensates the accumulated deficit. The maximum deficit and duration of each event are recorded.
+The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Daily soil water balance is calculated as $P_{\mathrm{in}} - \mathrm{PET}$. Using the default settings of the cwd::cwd() function, cumulative water deficit increases during periods of negative water balance and an event ends when subsequent water surplus fully compensates the accumulated deficit. The maximum deficit and duration of each event are recorded.
 
 ### CH2025 Data Structure
 
@@ -97,16 +97,17 @@ Once all the required variables are available, they will then be consolidated wi
 3.  Fill dataframe with precipitation, temperature and radiation data from CH2025 DAILY-LOCAL dataset. Conduct quality control on the filled dataframes, checking for missing values. Simulations for pr, tas and rsds involving HADGEM are consistently missing 5 values per year, randomly distributed over the year. These missing values will be filled with the mean of the respective variable for that station and GWL (tbd). A summary of the missing values is indicated below.
 
 ```{r qc-table, echo=FALSE}
+```{r qc-pr, echo=FALSE}
 qc <- read.csv(here::here("tables", "qc_missing_pr.csv"))
 knitr::kable(qc, caption = "Missing daily precipitation values per data frame (before replacement).")
 ```
 
-```{r qc-table, echo=FALSE}
+```{r qc-tas, echo=FALSE}
 qc <- read.csv(here::here("tables", "qc_missing_tas.csv"))
 knitr::kable(qc, caption = "Missing daily temperature values per data frame (before replacement).")
 ```
 
-```{r qc-table, echo=FALSE}
+```{r qc-rsds, echo=FALSE}
 qc <- read.csv(here::here("tables", "qc_missing_rsds.csv"))
 knitr::kable(qc, caption = "Missing daily shortwave radiation values per data frame (before replacement).")
 ```
@@ -201,3 +202,5 @@ ggplot(tl, aes(y = task, colour = type)) +
 ```
 
 ## Bibliography
+
+rmarkdown::render("vignettes/Proposal.Rmd")
