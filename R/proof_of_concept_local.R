@@ -8,7 +8,7 @@
 library(here)
 library(jsonlite)
 
-# ---- 1. Settings  -------------------------------------------
+# ---- Settings  -------------------------------------------
 station <- "evo"                       # station abbreviation (Evolene)
 vars    <- c("pr", "tas", "rsds")      # variables to download, only the ones needed for cwd
 gwls    <- c("1.5", "2.0", "2.5", "3.0")
@@ -16,7 +16,7 @@ gwls    <- c("1.5", "2.0", "2.5", "3.0")
 out_dir <- here("data-raw", "CH2025", "DAILY_LOCAL", station)
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-# ---- 2. Read the STAC item of the station -------------------------
+# ---- Read the STAC item of the station -------------------------
 item_url <- paste0("https://data.geo.admin.ch/api/stac/v1/collections/",
                    "ch.meteoschweiz.ogd-climate-scenarios-ch2025/items/", station)
 
@@ -24,7 +24,7 @@ item  <- fromJSON(item_url, simplifyVector = FALSE)
 hrefs <- vapply(item$assets, function(a) a$href, character(1))
 cat("Files (assets) listed in the STAC item:", length(hrefs), "\n")
 
-# ---- 3. Select the files we need ----------------------------------
+# ---- Select the files we need ----------------------------------
 # file names look like ogd-climate-scenarios-ch2025_evo_pr_gwl1.5.csv
 wanted <- paste0("ogd-climate-scenarios-ch2025_", station, "_",
                  rep(vars, each = length(gwls)), "_gwl", gwls, ".csv")
@@ -34,7 +34,7 @@ if (length(missing) > 0) stop("Not found in the STAC item:\n", paste(missing, co
 
 sel <- hrefs[basename(hrefs) %in% wanted]
 
-# ---- 4. Download (skips files that already exist) -----------------
+# ---- Download (skips files that already exist) -----------------
 options(timeout = 600)
 for (u in sel) {
   dest <- file.path(out_dir, basename(u))
@@ -44,7 +44,7 @@ for (u in sel) {
   }
 }
 
-# ---- 5. Check what we have ----------------------------------------
+# ---- Check what we have ----------------------------------------
 n_files <- length(list.files(out_dir, pattern = "\\.csv$"))
 stopifnot("station folder does not contain the expected number of csv files" =
             n_files == length(wanted))
@@ -66,7 +66,7 @@ message("OK: ", n_files, " files in ", out_dir)
 library(here)
 library(dplyr)
 
-# ---- 1. Model simulations and warming levels -----------------------
+# ---- Model simulations and warming levels -----------------------
 models <- c(
   "CLMCOM_CCLM4_CCCMA", "CLMCOM_CCLM4_ECEARTH", "CLMCOM_CCLM4_HADGEM",
   "CLMCOM_CCLM4_MIROC", "CLMCOM_CCLM4_MPIESM", "CNRM_ALADIN_CNRM",
@@ -87,18 +87,18 @@ models_by_gwl <- list(
   GWL_3   = setdiff(models, c("CLMCOM_CCLM4_MPIESM", "MPICSC_REMO1_MPIESM"))
 )
 
-# ---- 2. Stations = folders in DAILY_LOCAL ---------------------------
+# ---- Stations = folders in DAILY_LOCAL ---------------------------
 dir_local <- here("data-raw", "CH2025", "DAILY_LOCAL")
 stations  <- list.dirs(dir_local, full.names = FALSE, recursive = FALSE)
 stopifnot("no station folders found" = length(stations) > 0)
 message("Stations found: ", paste(stations, collapse = ", "))
 
-# ---- 3. Dates: 30 years x 365 days, no leap days ----------------------
+# ---- Dates: 30 years x 365 days, no leap days ----------------------
 dates <- seq(as.Date("0001-01-01"), as.Date("0030-12-31"), by = "day")
 dates <- dates[format(dates, "%m-%d") != "02-29"]
 stopifnot(length(dates) == 30 * 365)                      # 10,950
 
-# ---- 4. Create the data frames ---------------------------------------
+# ---- Create the data frames ---------------------------------------
 for (station in stations) {
   for (g in names(models_by_gwl)) {
     for (m in models_by_gwl[[g]]) {
@@ -132,11 +132,11 @@ for (station in stations) {
 #
 # ------------------------------------------------------------------
 
-# ---- 1. Settings ---------------------------------------------------
+# ---- Settings ---------------------------------------------------
 # warming level as written in the object names and in the file names
 gwl_in_file <- c(GWL_1_5 = "1.5", GWL_2 = "2.0", GWL_2_5 = "2.5", GWL_3 = "3.0")
 
-# ---- 2. Reader for the CH2025 csv files ----------------------------
+# ---- Reader for the CH2025 csv files ----------------------------
 # The files start with metadata lines; the table starts at the line "DATE;..."
 read_ch2025 <- function(path) {
   lines <- readLines(path, encoding = "UTF-8", warn = FALSE)
@@ -148,7 +148,7 @@ read_ch2025 <- function(path) {
   out
 }
 
-# ---- 3. Function: fill one variable into all data frames -------------
+# ---- Function: fill one variable into all data frames -------------
 fill_variable <- function(var) {
   for (station in stations) {
     for (g in names(gwl_in_file)) {
@@ -185,7 +185,57 @@ fill_variable <- function(var) {
   }
 }
 
-# ---- 4. Run ----------------------------------------------------------
+# ---- Run for pr, tas and rsds ----------------------------------------------------------
 fill_variable("pr")
 fill_variable("tas")
 fill_variable("rsds")
+
+# ------------------------------------------------------------------
+# Step 4: rain/snow split and snow routine
+#
+# For every data frame CH2025_[STATION]_[MODEL]_GWL_[x] (all stations):
+#   1. split pr into rain and snow with a temperature threshold (tas)
+#   2. run cwd::simulate_snow() -> snow_pool and liquid_to_soil
+# The results go into the existing columns rain, snow, snow_pool and
+# liquid_to_soil of the same data frame (no new objects are created).
+#
+# The cwd package comes from GitHub:  remotes::install_github("geco-bern/cwd")
+# ------------------------------------------------------------------
+
+# ---- Setting ----------------------------------------------------
+temp_snow <- 0      # deg C: precipitation below this temperature falls as snow
+
+# ---- Loop over all data frames ----------------------------------
+done    <- 0
+skipped <- character(0)
+
+for (nm in ls(pattern = "^CH2025_", envir = globalenv())) {
+  d <- get(nm, envir = globalenv())
+
+  if (all(is.na(d$tas)) || all(is.na(d$pr)))
+    stop(nm, ": pr or tas not filled yet, run step 3 first")
+
+  # cwd::simulate_snow() cannot handle missing values: skip these series
+  if (anyNA(d$tas) || anyNA(d$pr)) {
+    skipped <- c(skipped, nm)
+    next
+  }
+
+  # rain and snow (mm/day)
+  d$rain <- ifelse(d$tas < temp_snow, 0, d$pr)
+  d$snow <- ifelse(d$tas < temp_snow, d$pr, 0)
+
+  # snow routine: fills snow_pool and liquid_to_soil
+  d <- cwd::simulate_snow(d, varnam_temp = "tas", varnam_prec = "rain", varnam_snow = "snow")
+
+  assign(nm, d, envir = globalenv())
+  done <- done + 1
+}
+
+# ---- Report -------------------------------------------------------
+message(done, " data frames processed")
+if (length(skipped) > 0) {
+  message(length(skipped), " data frames skipped (missing values in pr or tas):")
+  message(paste0("  ", skipped, collapse = "\n"))
+}
+
