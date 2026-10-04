@@ -202,5 +202,3 @@ ggplot(tl, aes(y = task, colour = type)) +
 ```
 
 ## Bibliography
-
-rmarkdown::render("vignettes/Proposal.Rmd")
