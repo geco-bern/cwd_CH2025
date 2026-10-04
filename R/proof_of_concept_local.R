@@ -398,4 +398,25 @@ for (nm in pet_objects) {
 
 message(length(pet_objects), " data frames updated with PET (mm/day)")
 
+# ------------------------------------------------------------------
+# Step 7: calculate daily water balance
+#
+# Water balance is liquid water reaching the soil minus potential
+# evapotranspiration, in mm/day.
+# ------------------------------------------------------------------
+
+wbal_objects <- ls(pattern = "^CH2025_", envir = globalenv())
+
+for (nm in wbal_objects) {
+  d <- get(nm, envir = globalenv())
+
+  if (any(!is.finite(d$liquid_to_soil)) || any(!is.finite(d$pet)))
+    stop(nm, ": liquid_to_soil and pet must be finite before calculating wbal")
+
+  d$wbal <- d$liquid_to_soil - d$pet
+  assign(nm, d, envir = globalenv())
+}
+
+message(length(wbal_objects), " data frames updated with water balance (mm/day)")
+
 View(CH2025_EVO_CLMCOM_CCLM4_CCCMA_GWL_1_5)
