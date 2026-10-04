@@ -138,6 +138,10 @@ leaflet() |>
 
 ## Proof of Concept
 
+```{r cwd-ensemble-figure, echo=FALSE, out.width="100%", fig.cap="Daily cumulative water deficit across the EVO GWL 1.5 ensemble. The red line shows the ensemble median and the shaded band the 10th–90th percentile range."}
+knitr::include_graphics(here::here("figures", "cwd_ensemble_EVO_GWL_1_5.png"))
+```
+
 ## Scope
 
 CH2025 data. no validation or bias correction

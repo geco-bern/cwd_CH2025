@@ -443,3 +443,92 @@ for (nm in cwd_objects) {
 
 message(length(cwd_objects), " data frames updated with CWD; event tables saved in cwd_events")
 
+# ------------------------------------------------------------------
+# Example plot for proposal
+# ------------------------------------------------------------------
+
+library(dplyr)
+library(ggplot2)
+
+station <- "EVO"
+gwl <- "1_5"  # use "2", "2_5", or "3" for other warming levels
+
+series_pattern <- sprintf("^CH2025_%s_(.*)_GWL_%s$", station, gwl)
+series_names <- ls(pattern = series_pattern, envir = .GlobalEnv)
+
+if (length(series_names) == 0) {
+  stop("No matching data frames found for ", station, ", GWL ", gwl)
+}
+
+cwd_daily <- bind_rows(lapply(series_names, function(nm) {
+  d <- get(nm, envir = .GlobalEnv)
+
+  if (!"deficit" %in% names(d)) {
+    stop(nm, " has no CWD column; run Step 8 first")
+  }
+
+  tibble(
+    simulation = sub(series_pattern, "\\1", nm),
+    simulation_year = (seq_len(nrow(d)) - 1) / 365,
+    cwd = d$deficit
+  )
+}))
+
+ensemble <- cwd_daily |>
+  group_by(simulation_year) |>
+  summarise(
+    p10 = quantile(cwd, 0.10, na.rm = TRUE),
+    median = median(cwd, na.rm = TRUE),
+    p90 = quantile(cwd, 0.90, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+cwd_plot <- ggplot() +
+  geom_line(
+    data = cwd_daily,
+    aes(x = simulation_year, y = cwd, group = simulation),
+    colour = "#647984", alpha = 0.22, linewidth = 0.35
+  ) +
+  geom_ribbon(
+    data = ensemble,
+    aes(x = simulation_year, ymin = p10, ymax = p90),
+    fill = "#4A9B8E", alpha = 0.24
+  ) +
+  geom_line(
+    data = ensemble,
+    aes(x = simulation_year, y = median),
+    colour = "#C44E3B", linewidth = 0.9
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, 30, by = 5),
+    limits = c(0, 30),
+    expand = expansion(mult = c(0, 0))
+  ) +
+  labs(
+    title = paste("Cumulative water deficit |", station, "| GWL", gsub("_", ".", gwl)),
+    subtitle = paste(
+      length(series_names),
+      "ensemble members; red = median, shaded band = 10th–90th percentile"
+    ),
+    x = "Simulation year",
+    y = "Cumulative water deficit (mm)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+figure_dir <- here::here("figures")
+dir.create(figure_dir, showWarnings = FALSE, recursive = TRUE)
+ggsave(
+  filename = file.path(figure_dir, "cwd_ensemble_EVO_GWL_1_5.png"),
+  plot = cwd_plot,
+  width = 10,
+  height = 6,
+  units = "in",
+  dpi = 300,
+  bg = "white"
+)
+
+cwd_plot
