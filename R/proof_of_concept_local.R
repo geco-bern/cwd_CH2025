@@ -54,11 +54,13 @@ message("OK: ", n_files, " files in ", out_dir)
 # Step 2: one data frame per station x model simulation x warming level
 #
 # Every folder in data-raw/CH2025/DAILY_LOCAL/ is treated as a station.
-# For each station, 102 data frames (columns: date, wbal) are created:
+# For each station, 102 data frames are created:
 #   CH2025_[STATION]_[MODEL]_GWL_[x]
 #   e.g. CH2025_EVO_CLMCOM_CCLM4_CCCMA_GWL_1_5
 # Each holds 10,950 days (0001-01-01 to 0030-12-31, 365-day calendar,
-# no leap days). wbal (water balance) is empty and filled in later steps.
+# no leap days) with the columns date, pr, tas, rsds, rain, snow, snow_pool,
+# liquid_to_soil, pet, wbal.
+# Apart from date, all columns are empty placeholders filled in later steps.
 # ------------------------------------------------------------------
 
 library(here)
@@ -101,7 +103,16 @@ for (station in stations) {
   for (g in names(models_by_gwl)) {
     for (m in models_by_gwl[[g]]) {
       assign(paste0("CH2025_", toupper(station), "_", m, "_", g),
-             tibble(date = dates, wbal = NA_real_),
+             tibble(date           = dates,
+                    pr             = NA_real_,   # precipitation (mm/day)
+                    tas            = NA_real_,   # mean temperature (deg C)
+                    rsds           = NA_real_,   # incoming shortwave radiation
+                    rain           = NA_real_,   # precipitation falling as rain (mm/day)
+                    snow           = NA_real_,   # precipitation falling as snow, water equivalent (mm/day)
+                    snow_pool      = NA_real_,   # snow mass (mm water equivalent)
+                    liquid_to_soil = NA_real_,   # rain + snowmelt (mm/day)
+                    pet            = NA_real_,   # potential evapotranspiration (mm/day)
+                    wbal           = NA_real_),  # liquid_to_soil - pet
              envir = globalenv())
     }
   }
@@ -109,6 +120,3 @@ for (station in stations) {
   n <- length(ls(envir = globalenv(), pattern = paste0("^CH2025_", toupper(station), "_")))
   message(station, ": ", n, " data frames created")      # expect 102
 }
-
-View(df)
-# list the data frames of one station:  ls(pattern = "^CH2025_EVO_")
