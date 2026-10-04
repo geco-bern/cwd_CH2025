@@ -235,7 +235,7 @@ qc_summarise <- function(tab) {
                      .groups = "drop")
 }
 
-# ---- 5. Run ----------------------------------------------------------
+# ---- Run ----------------------------------------------------------
 # for precipitation
 fill_variable("pr")
 qc_pr <- qc_missing("pr")          # long table: data frame x year (before replacement)
