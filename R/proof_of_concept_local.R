@@ -443,4 +443,3 @@ for (nm in cwd_objects) {
 
 message(length(cwd_objects), " data frames updated with CWD; event tables saved in cwd_events")
 
-View(CH2025_EVO_CLMCOM_CCLM4_CCCMA_GWL_1_5)
