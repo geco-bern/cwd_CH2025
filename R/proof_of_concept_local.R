@@ -111,6 +111,7 @@ for (station in stations) {
                     snow           = NA_real_,   # precipitation falling as snow, water equivalent (mm/day)
                     snow_pool      = NA_real_,   # snow mass (mm water equivalent)
                     liquid_to_soil = NA_real_,   # rain + snowmelt (mm/day)
+                    patm           = NA_real_,   # atmospheric pressure (hPa)
                     pet            = NA_real_,   # potential evapotranspiration (mm/day)
                     wbal           = NA_real_),  # liquid_to_soil - pet
              envir = globalenv())
