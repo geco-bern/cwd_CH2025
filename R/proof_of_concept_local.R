@@ -113,7 +113,7 @@ for (station in stations) {
                     liquid_to_soil = NA_real_,   # rain + snowmelt (mm/day)
                           patm           = NA_real_,   # atmospheric pressure (Pa)
                     pet            = NA_real_,   # potential evapotranspiration (mm/day)
-                    wbal           = NA_real_),  # liquid_to_soil - pet
+                    wbal           = NA_real_),  # liquid_to_soil - pet (mm/day)
              envir = globalenv())
     }
   }
@@ -418,5 +418,29 @@ for (nm in wbal_objects) {
 }
 
 message(length(wbal_objects), " data frames updated with water balance (mm/day)")
+
+# ------------------------------------------------------------------
+# Step 8: calculate cumulative water deficit
+#
+# Daily CWD outputs are added to each simulation data frame. Event-level
+# summaries are kept separately in `cwd_events`, keyed by data frame name.
+# cwd()'s default thresh_drop = 0 ends an event at full recovery.
+# ------------------------------------------------------------------
+
+cwd_objects <- ls(pattern = "^CH2025_", envir = globalenv())
+cwd_events <- setNames(vector("list", length(cwd_objects)), cwd_objects)
+
+for (nm in cwd_objects) {
+  d <- get(nm, envir = globalenv())
+
+  if (any(!is.finite(d$wbal)) || anyNA(d$date))
+    stop(nm, ": wbal and date must be complete before calculating CWD")
+
+  cwd_result <- cwd::cwd(d, varname_wbal = "wbal", varname_date = "date")
+  assign(nm, cwd_result$df, envir = globalenv())
+  cwd_events[[nm]] <- cwd_result$inst
+}
+
+message(length(cwd_objects), " data frames updated with CWD; event tables saved in cwd_events")
 
 View(CH2025_EVO_CLMCOM_CCLM4_CCCMA_GWL_1_5)

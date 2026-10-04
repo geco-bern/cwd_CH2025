@@ -22,7 +22,7 @@ The aim of this thesis is to analyse the CH2025 climate projections for trends i
 
 ### Calculating PCWD
 
-The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Potential cumulative water deficit (PCWD, in mm) is calculated as the cumulative difference between potential evapotranspiration (PET, mm day^-1^) and liquid water infiltration into the root zone (P~in~, mm day^-1^). Following @stockerGlobalPatternsWater2023 and @helpapAreModernDroughts2026, the PCWD is accumulated during events of net water deficit (P~in~ − PET \< 0). An event ends and the sum is reset to zero when the PCWD falls 10 mm below its maximum within that event. The maximum PCWD and the duration (in days) of each event are stored. Also following @helpapAreModernDroughts2026, the Priestley‐Taylor Equation @priestleyAssessmentSurfaceHeat1972 is used to calculate PET, using α = 1.26 as coefficient. The above definitions of PCWD and PET are implemented in the cwd R package for cumulative water deficit calculation @stockerGecobernCwdCwd2026.
+The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Daily soil water balance is calculated as (P_{\mathrm{in}} - \mathrm{PET}). Using the default settings of the cwd::cwd() function, cumulative water deficit increases during periods of negative water balance and an event ends when subsequent water surplus fully compensates the accumulated deficit. The maximum deficit and duration of each event are recorded.
 
 ### CH2025 Data Structure
 
@@ -118,7 +118,7 @@ knitr::kable(qc, caption = "Missing daily shortwave radiation values per data fr
 
 7.  Calculate water balance: liquid to soil minus evapotranspiration
 
-8.  calculate cwd
+8.  Calculate daily cumulative water deficit and event-level maximum deficit and duration using cwd::cwd() with its default full-recovery rule (thresh_drop = 0).
 
 ### Regional aggregation
 
