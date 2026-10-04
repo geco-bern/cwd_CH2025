@@ -144,11 +144,7 @@ knitr::include_graphics(here::here("figures", "cwd_ensemble_EVO_GWL_1_5.png"))
 
 ## Scope
 
-CH2025 data. no validation or bias correction
-
-No analysis performed on reference data 91-20
-
-wie ist shifts in snow accumulation and snowmelt in pcwd enthalten?
+Only CH2025 data. no validation or bias correction. No analysis performed on reference data 91-20
 
 ## Timeline
 
