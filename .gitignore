@@ -4,8 +4,4 @@
 .Ruserdata
 
 # large climate data (download separately)
-data-raw/CH2025/Gridded/
-*.nc
-
-# large DHM25 download formats; DHM200.asc stays in the repo
-data-raw/DHM25/*.dxf
+data-raw/
