@@ -16,38 +16,22 @@ The summer of 2026 brought exceptional heat and dryness to large parts of Europe
 
 ## Objective
 
-The aim of this thesis is to analyse the CH2025 climate projections for trends in drought, quantified using the potential cumulative water deficit (PCWD). I hypothesize that (1) the frequency and magnitude of drought events in Switzerland increase with warming, with stronger increases under higher-emission scenarios, and (2) the increase is spatially heterogeneous and strongest in the inner-Alpine dry valleys, followed by the Swiss Plateau, and weakest in the high Alps and the Alpine margins. The results will also be put into context of the drought projections of the Climate CH2025 - Scientific Report @ClimateCH2025Scientific and other research such as @helpapAreModernDroughts2026 and @scherrerTrendsDriversRecent2022.
+The aim of this thesis is to quantify how drought, expressed as the potential cumulative water deficit (PCWD), changes across Switzerland at different global warming levels (GWLs) in the CH2025 climate projections. I hypothesize that (1) the frequency and magnitude of drought events increase with global warming, with stronger increases at higher GWLs, and (2) the increase in absolute PCWD (mm) is spatially heterogeneous: strongest in the inner-Alpine dry valleys, followed by the Swiss Plateau, and weakest in the high Alps and the Alpine margins. Warming raises atmospheric water demand everywhere, mainly through a higher vapour pressure deficit [@ClimateCH2025Scientific]. Where precipitation is low, as in the inner-Alpine valleys, little water is available to compensate for this higher demand, so the deficit should grow fastest. In the high Alps, low temperatures and snowmelt supply buffer the increase, and the Alpine margins receive abundant precipitation. The results will be compared with the soil moisture and water availability droughts in the CH2025 Scientific Report [@ClimateCH2025Scientific], with the observed summer drying trends in Switzerland [@scherrerTrendsDriversRecent2022], and with the long-term drought variability of the past 600 years [@helpapAreModernDroughts2026].
 
-## Method
+## Materials and Methods
+
+Here drought is investigated using the potential cumulative water deficit (PCWD) as defined by @helpapAreModernDroughts2026. Through PCWD, intensity and frequency of drought events are quantified. PCWD is calculated from daily precipitation, temperature, and radiation data. The CH2025 datasets provide daily time series of mean surface temperature, temperature maximum, temperature minimum and precipitation on a high-resolution 1 km grid (DAILY-GRIDDED). The analysis will be conducted for the GWLs 1.5, 2.0, 2.5 and 3.0 °C above pre-industrial levels.
+
+### Climate CH2025 datasets
+
+The Climate CH2025 datasets comprise daily time series of several meteorological variables on a high-resolution 1 km grid (DAILY-GRIDDED). DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full spatial and temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets. DAILY-GRIDDED data is provided as NetCDF files. Each file covers the full spatial and temporal extent. Files are a combination of a given variable, a given simulation and a given GWL. I.e. the NetCDF File for precipitation with the simulation clmcom-cclm4-cccma is *ogd-climate-scenarios-ch2025-grid_ch_pr_clmcom-cclm4-cccma_gwl1.5.nc.* Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets.
+
+### MeteoSwiss Radiation data 
+Radiation is not provided in the CH2025 daily gridded data. To compensate for this, satellite-derived radiation data from MeteoSwiss is used to develop a machine learning model to forecast net radiation based on CH2025 reference data. Only four SwissMetNet stations record all components needed for net radiation, so satellite-derived data is used instead. The MeteoSwiss Radiation Data (version 4.2.0) are satellite-based estimates of the surface radiation budget over Switzerland, derived from Meteosat observations with the GeoSatClim software [@MeteoSwissRadiation2025]. They include incoming solar radiation, albedo, downward and outgoing longwave radiation, and the derived net radiation (W m^-2^) as hourly to yearly means on a 0.05° grid from 1991 and a 0.02° grid from 2004. 
 
 ### Calculating PCWD
 
-The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Daily soil water balance is calculated as $P_{\mathrm{in}} - \mathrm{PET}$. Using the default settings of the cwd::cwd() function, cumulative water deficit increases during periods of negative water balance and an event ends when subsequent water surplus fully compensates the accumulated deficit. The maximum deficit and duration of each event are recorded.
-
-### CH2025 Data Structure
-
-The Climate CH2025 datasets comprise daily time series of several meteorological variables at stations (DAILY-LOCAL) and on a high-resolution 1 km grid (DAILY-GRIDDED). DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full spatial and temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets. DAILY-GRIDDED data is provided as NetCDF files. Each file covers the full spatial and temporal extent. Files are a combination of a given variable, a given simulation and a given GWL. I.e. the NetCDF File for precipitation with the simulation clmcom-cclm4-cccma is *ogd-climate-scenarios-ch2025-grid_ch_pr_clmcom-cclm4-cccma_gwl1.5.nc.* Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets.
-
-Variable provision differs for stations and between DAILY-LOCAL and DAILY-GRIDDED, as is shown in the table below. The reason for the reduced set of variables in DAILY-GRIDDED is "the lack of a gridded observational dataset to serve as reference for the bias correction for the remaining three variables" @ClimateCH2025Datasets.
-
-| Variable name | Unit | DAILY-LOCAL (No. of stations) | DAILY- GRIDDED |
-|------------------|------------------|------------------|------------------|
-| Daily mean 2m temperature | °C | provided (89) | provided |
-| Daily maximum 2m temperature | °C | provided (88) | provided |
-| Daily minimum 2m temperature | °C | provided (89) | provided |
-| Daily precipitation sum | mm/day | provided (405) | provided |
-| Daily mean global radiation | W/m2 | provided (67) | not provided |
-| Daily mean relative humidity | \% | provided (88) | not provided |
-| Daily mean 10m wind speed | m/s | provided (87) | not provided |
-
-Below is an overview of which variable is available for which station in the DAILY-LOCAL dataset
-
-```{r station-map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
-source(here::here("R", "stations_overview_local.R"), local = knitr::knit_global())
-m
-```
-
-### Required meteorological variables
+The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Daily soil water balance is calculated as $P_{\mathrm{in}} - \mathrm{PET}$. Cumulative water deficit increases during periods of negative water balance and an event ends when subsequent water surplus fully compensates the accumulated deficit, but is also reset at the wettest month each year. The annual maximum deficit and duration of each event are recorded.
 
 The following table indicates, which variables are needed to apply the *cwd* and *pet* function and their source:
 
@@ -86,31 +70,16 @@ CH2025 DAILY-GRIDDED Data comes is provided on a 1km grid. Metadata indicates th
 
 ![](images/mismatch_climate_vs_elevation.jpg)
 
-### Consolidation
+### Workflow
 
-Once all the required variables are available, they will then be consolidated with the following workflow. For DAILY-LOCAL:
+To calculate PCWD, the following workflow is applied:
 
-1.  Get station data from CH2025 DAILY-LOCAL dataset for every variable and every GWL
+1.  Get data from CH2025 DAILY-GRIDDED dataset for every variable and every GWL, including the reference period 1991-2020. 
 
-2.  For every station, create one dataframe template for final cwd calculation for each of the 26 GCM- RCM combinations for GWLs 1.5, 2.0 and 2.5 and each of the 24 combinations for GWL3.0. I.e. 102 unique dataframes per station. Fill template with a column for every required variable, with the correct unit and temporal resolution. Each dataframe will have 10,950 rows (30 years x 365 days) and 11 columns (date, pr, tas, rsds, rain, snow, snow_pool, liquid_to_soil, patm, pet, wbal). The dataframes will be filled with NA values.
+2.  Get data from meteoswiss radiation dataset for surface radiation balance (netradiation) for the complete available period 2004 to 2026.
 
-3.  Fill dataframe with precipitation, temperature and radiation data from CH2025 DAILY-LOCAL dataset. Conduct quality control on the filled dataframes, checking for missing values. Simulations for pr, tas and rsds involving HADGEM are consistently missing 5 values per year, randomly distributed over the year. These missing values will be filled with the mean of the respective variable for that station and GWL (tbd). A summary of the missing values is indicated below.
+3.  Develop a machine learning model to predict net radiation based on CH2025 reference data and meteoswiss radiation data. Apply the model to the CH2025 forecast dataset. 
 
-```{r qc-table, echo=FALSE}
-```{r qc-pr, echo=FALSE}
-qc <- read.csv(here::here("tables", "qc_missing_pr.csv"))
-knitr::kable(qc, caption = "Missing daily precipitation values per data frame (before replacement).")
-```
-
-```{r qc-tas, echo=FALSE}
-qc <- read.csv(here::here("tables", "qc_missing_tas.csv"))
-knitr::kable(qc, caption = "Missing daily temperature values per data frame (before replacement).")
-```
-
-```{r qc-rsds, echo=FALSE}
-qc <- read.csv(here::here("tables", "qc_missing_rsds.csv"))
-knitr::kable(qc, caption = "Missing daily shortwave radiation values per data frame (before replacement).")
-```
 4.  Calculate liquid to soil by splitting precipitation into snow and rain (temperature threshold 0 °C) and applying the *simulate_snow* function to fill in rain, snow, snow_pool and liquid_to_soil columns.
 
 5.  Calculate atmospheric pressure using the standard atmospheric pressure subject to elevation.
@@ -119,11 +88,11 @@ knitr::kable(qc, caption = "Missing daily shortwave radiation values per data fr
 
 7.  Calculate water balance: liquid to soil minus evapotranspiration
 
-8.  Calculate daily cumulative water deficit and event-level maximum deficit and duration using cwd::cwd() with its default full-recovery rule (thresh_drop = 0).
+8.  Calculate daily cumulative water deficit and event-level annual maximum deficit and duration using cwd::cwd() with recovery rule applied at the wettest month of each year.
 
 ### Regional aggregation
 
-With PCWD calculated either on a 1km grid using DAILY-GRIDDED or for DAILY-LOCAL, the results will be aggregated spatially, applying the definition for biogeographic regions as in @ClimateCH2025Scientific.
+With PCWD calculated on a 1km grid using DAILY-GRIDDED, the results will be aggregated spatially, applying the definition for biogeographic regions as in @ClimateCH2025Scientific as shown below.
 
 ```{r biogeo-map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
 library(leaflet)
@@ -145,7 +114,7 @@ knitr::include_graphics(here::here("figures", "cwd_ensemble_EVO_GWL_1_5.png"))
 
 ## Scope
 
-Only CH2025 data. no validation or bias correction. No analysis performed on reference data 91-20
+Only CH2025 data. no validation or bias correction.
 
 ## Timeline
 
