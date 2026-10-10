@@ -24,8 +24,9 @@ station   <- "evo"
 # variable(s): "pr", "tas", "tasmin", "tasmax"  (local also "rsds", "hurs", "sfcwind"), or "all"
 parameter <- c("all") 
 
-# warming level(s): "ref91-20", "gwl1.5", "gwl2.0", "gwl2.5", "gwl3.0", or "all"
-gwl       <- "gwl1.5"
+# gwl: "ref91-20" (historical reference), "gwl1.5", "gwl2.0",
+# "gwl2.5", "gwl3.0", or "all"
+gwl    <- "ref91-20"
 
 # gridded only: model chain, e.g. "clmcom-cclm4-cccma", or "all"
 model     <- "clmcom-cclm4-cccma"
@@ -33,7 +34,6 @@ model     <- "clmcom-cclm4-cccma"
 # local only: ".csv" or ".zip" (gridded files are always ".nc")
 format    <- ".csv"
 
-dry_run      <- TRUE        # TRUE = only list the files and what is on disk, no download
 show_size    <- TRUE        # ask the server for the file sizes (slow for many files)
 check_sha256 <- TRUE        # compare the checksum after the download (needs `digest`)
 
@@ -47,10 +47,18 @@ options(timeout = 7200)     # seconds allowed per download (large files)
 stopifnot(mode %in% c("local", "gridded"))
 station   <- tolower(station)
 parameter <- tolower(parameter)
-gwl       <- tolower(gwl)
+gwl    <- tolower(gwl)
 model     <- tolower(model)
 format    <- if (mode == "gridded") ".nc" else tolower(format)
 if (mode == "local") stopifnot(format %in% c(".csv", ".zip"))
+
+available_gwls <- c("ref91-20", "gwl1.5", "gwl2.0", "gwl2.5", "gwl3.0")
+if (!identical(gwl, "all") && !all(gwl %in% available_gwls)) {
+  stop(
+    "Invalid GWL selection. Choose from: ",
+    paste(c(available_gwls, "all"), collapse = ", ")
+  )
+}
 
 collection_id <- if (mode == "local") "ogd-climate-scenarios-ch2025" else "ogd-climate-scenarios-ch2025-grid"
 collection    <- paste0("ch.meteoschweiz.", collection_id)
@@ -84,7 +92,7 @@ while (!is.null(next_url)) {
 hrefs <- unique(hrefs)
 
 # ---- 4. Select the files that match the choices -----------------------
-# a file matches if its name contains "_<value>_" (or "_<value>" for the warming level)
+# A file matches if its name contains "_<value>_" or ends in "_<value>.nc".
 matches <- function(fname, values, right = "_") {
   if (identical(values, "all")) return(TRUE)
   any(vapply(values, function(v) grepl(paste0("_", v, right), fname, fixed = TRUE), logical(1)))
@@ -94,7 +102,7 @@ keep <- vapply(basename(hrefs), function(f) {
   startsWith(f, paste0(collection_id, "_")) &&
     endsWith(f, format) &&
     matches(f, parameter) &&
-    matches(f, gwl, right = "") &&
+  matches(f, gwl, right = format) &&
     (if (mode == "local") matches(f, station) else matches(f, model))
 }, logical(1), USE.NAMES = FALSE)
 
@@ -136,31 +144,29 @@ if (all(is.na(size_bytes))) {
 }
 
 # ---- 6. Download the missing files -------------------------------------
-if (!dry_run) {
-  if (sum(!have) > 0 &&
-      !isTRUE(askYesNo(paste0("Download ", sum(!have), " missing files?")))) {
-    stop("Download cancelled", call. = FALSE)
-  }
-
-  for (i in seq_along(urls)) {
-    fname <- basename(urls[i])
-
-    if (have[i]) {
-      message("Already on disk: ", fname)
-    } else {
-      dir.create(dirname(dest[i]), showWarnings = FALSE, recursive = TRUE)
-      message("[", i, "/", length(urls), "] Downloading ", fname)
-      download.file(urls[i], dest[i], mode = "wb", method = "libcurl")
-    }
-
-    if (check_sha256) {
-      remote_sha <- header_field(urls[i], "x-amz-meta-sha256")
-      if (is.na(remote_sha)) {
-        warning("No checksum available for ", fname)
-      } else if (!identical(digest::digest(dest[i], algo = "sha256", file = TRUE), remote_sha)) {
-        stop("SHA256 mismatch: ", fname, " is not intact, delete it and download again")
-      }
-    }
-  }
-  message("Done. Files saved below ", out_root)
+if (sum(!have) > 0 &&
+    !isTRUE(askYesNo(paste0("Download ", sum(!have), " missing files?")))) {
+  stop("Download cancelled", call. = FALSE)
 }
+
+for (i in seq_along(urls)) {
+  fname <- basename(urls[i])
+
+  if (have[i]) {
+    message("Already on disk: ", fname)
+  } else {
+    dir.create(dirname(dest[i]), showWarnings = FALSE, recursive = TRUE)
+    message("[", i, "/", length(urls), "] Downloading ", fname)
+    download.file(urls[i], dest[i], mode = "wb", method = "libcurl")
+  }
+
+  if (check_sha256) {
+    remote_sha <- header_field(urls[i], "x-amz-meta-sha256")
+    if (is.na(remote_sha)) {
+      warning("No checksum available for ", fname)
+    } else if (!identical(digest::digest(dest[i], algo = "sha256", file = TRUE), remote_sha)) {
+      stop("SHA256 mismatch: ", fname, " is not intact, delete it and download again")
+    }
+  }
+}
+message("Done. Files saved below ", out_root)
