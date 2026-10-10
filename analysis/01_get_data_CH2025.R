@@ -22,7 +22,7 @@ mode      <- "gridded"      # "local" (station time series) or "gridded" (1 km g
 station   <- "evo"
 
 # variable(s): "pr", "tas", "tasmin", "tasmax"  (local also "rsds", "hurs", "sfcwind"), or "all"
-parameter <- c("all") 
+parameter <- c("all")
 
 # gwl: "ref91-20" (historical reference), "gwl1.5", "gwl2.0",
 # "gwl2.5", "gwl3.0", or "all"
