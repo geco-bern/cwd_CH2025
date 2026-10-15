@@ -123,9 +123,9 @@ library(tidyverse)
 
 tl <- tribble(
   ~task,                                          ~start,       ~end,         ~type,
-  "Drafting proposal",                            "2026-09-26", "2026-10-11", "Phase",
+  "Drafting proposal",                            "2026-09-26", "2026-10-18", "Phase",
   "Interim meeting",                              "2026-10-08", NA,           "Milestone",
-  "Evaluation proposal",                          "2026-10-12", "2026-10-19", "Phase",
+  "Evaluation proposal",                          "2026-10-19", "2026-10-20", "Phase",
   "Discussion proposal",                          "2026-10-20", NA,           "Milestone",
   "Data transformation",                          "2026-10-21", "2026-11-01", "Phase",
   "PCWD calculation",                             "2026-11-02", "2026-11-08", "Phase",
