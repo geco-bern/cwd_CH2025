@@ -16,17 +16,22 @@ library(here)
 library(jsonlite)
 
 # ---- 1. Choices (EDIT) -----------------------------------------------
-mode      <- "gridded"      # "local" (station time series) or "gridded" (1 km grids)
+mode      <- "local"      # "local" (station time series) or "gridded" (1 km grids)
 
 # local only: station codes, e.g. "evo" or c("evo", "abo"), or "all"
-station   <- "evo"
+station   <- c("ABO", "AIG", "ALT", "BAS", "BER", "BUS", "CDF", "CGI", "CHA", "CHU",
+  "CIM", "COM", "COV", "DAV", "DIS", "DOL", "ENG", "EVO", "FAH", "FRE",
+  "GLA", "GRH", "GSB", "GUE", "GUT", "GVE", "INT", "KLO", "LUG", "LUZ",
+  "MAG", "MLS", "MVE", "NAP", "NEU", "OTL", "PAY", "PIL", "PIO", "PLF",
+  "PUY", "REH", "ROB", "ROE", "RUE", "SAE", "SAM", "SBO", "SCU", "SHA",
+  "SIO","SMA","STG","TAE","ULR","VAD","VIS","WAE","WFJ", "WYN", "ZER")
 
 # variable(s): "pr", "tas", "tasmin", "tasmax"  (local also "rsds", "hurs", "sfcwind"), or "all"
-parameter <- c("all")
+parameter <- c("pr", "tasmin", "tasmax", "rsds")
 
 # gwl: "ref91-20" (historical reference), "gwl1.5", "gwl2.0",
 # "gwl2.5", "gwl3.0", or "all"
-gwl    <- "ref91-20"
+gwl    <- "all"
 
 # gridded only: model chain, e.g. "clmcom-cclm4-cccma", or "all"
 model     <- "clmcom-cclm4-cccma"
