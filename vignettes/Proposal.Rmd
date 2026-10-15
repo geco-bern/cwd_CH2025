@@ -20,45 +20,39 @@ The aim of this thesis is to quantify how drought, expressed as the potential cu
 
 ## Materials and Methods
 
-Here drought is investigated using the potential cumulative water deficit (PCWD) as defined by @helpapAreModernDroughts2026. Through PCWD, intensity and frequency of drought events are quantified. PCWD is calculated from daily precipitation, temperature, and radiation data. The CH2025 datasets provide daily time series of mean surface temperature, temperature maximum, temperature minimum and precipitation on a high-resolution 1 km grid (DAILY-GRIDDED). The analysis will be conducted for the GWLs 1.5, 2.0, 2.5 and 3.0 °C above pre-industrial levels.
+I investigate drought using the potential cumulative water deficit (PCWD) as defined by @helpapAreModernDroughts2026. Through PCWD, intensity and frequency of drought events are quantified. PCWD is calculated from daily precipitation, temperature, and radiation data. The analysis will be conducted for the GWLs 1.5, 2.0, 2.5 and 3.0 °C above pre-industrial levels, for all the available climate model simulations in the CH2025 dataset. The analysis is conducted on a 1 km grid across Switzerland, and results are aggregated to the biogeographic regions defined by the Swiss Federal Office for the Environment (FOEN) [@ClimateCH2025Scientific].
 
 ### Climate CH2025 datasets
 
-The Climate CH2025 datasets comprise daily time series of several meteorological variables on a high-resolution 1 km grid (DAILY-GRIDDED). DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full spatial and temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets. DAILY-GRIDDED data is provided as NetCDF files. Each file covers the full spatial and temporal extent. Files are a combination of a given variable, a given simulation and a given GWL. I.e. the NetCDF File for precipitation with the simulation clmcom-cclm4-cccma is *ogd-climate-scenarios-ch2025-grid_ch_pr_clmcom-cclm4-cccma_gwl1.5.nc.* Files are also provided for the model reference period 1991-2020 @ClimateCH2025Datasets.
+The Climate CH2025 datasets are provided by the Swiss Federal Office for Meteorology and Climatology (MeteoSwiss) in two formats: gridded and local. The gridded data comprise daily time series of several meteorological variables on a high-resolution 1 km grid (DAILY-GRIDDED). Each simulation has one NetCDF file per variable and GWL. I.e. the NetCDF file for daily mean temperature with the simulation clmcom-cclm4-cccma and GWL1.5 is *ogd-climate-scenarios-ch2025-grid_ch_tas_clmcom-cclm4-cccma_gwl1.5.nc.*. the .nc file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every grid cell (column). DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full spatial and temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 for both DAILY-GRIDDED and DAILY-LOCAL @ClimateCH2025Datasets.
 
-### MeteoSwiss Radiation data 
-Radiation is not provided in the CH2025 daily gridded data. To compensate for this, satellite-derived radiation data from MeteoSwiss is used to develop a machine learning model to forecast net radiation based on CH2025 reference data. Only four SwissMetNet stations record all components needed for net radiation, so satellite-derived data is used instead. The MeteoSwiss Radiation Data (version 4.2.0) are satellite-based estimates of the surface radiation budget over Switzerland, derived from Meteosat observations with the GeoSatClim software [@MeteoSwissRadiation2025]. They include incoming solar radiation, albedo, downward and outgoing longwave radiation, and the derived net radiation (W m^-2^) as hourly to yearly means on a 0.05° grid from 1991 and a 0.02° grid from 2004. 
+Simulations for pr, tas and rsds involving HADGEM are consistently missing 5 values per year, randomly distributed over the year. These missing values will be filled with the monthly mean of the respective variable.
 
 ### Calculating PCWD
 
-The definition of PCWD as described by @helpapAreModernDroughts2026 is used. Daily soil water balance is calculated as $P_{\mathrm{in}} - \mathrm{PET}$. Cumulative water deficit increases during periods of negative water balance and an event ends when subsequent water surplus fully compensates the accumulated deficit, but is also reset at the wettest month each year. The annual maximum deficit and duration of each event are recorded.
-
-The following table indicates, which variables are needed to apply the *cwd* and *pet* function and their source:
-
-| Variable Desc. | required unit | calculation step | source | source name | source unit | source temp. res. |
-|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
-| Daily precipitation sum | mm | Liquid to soil | CH2025 | pr | mm | daily |
-| Snow in liquid water equivalents | mm | Liquid to soil |  | snow | mm |  |
-| Daily mean 2m temperature | °C | Liquid to soil, PET | CH2025 | tas | °C | daily |
-| Daily mean global radiation | W/m2 | PET | CH2025 | rsds | W/m2 | daily |
-| Atmospheric pressure | Pa | PET | standart atmospheric pressure and elevation | patm | \- | \- |
-| Elevation a.s.l | m | Atmospheric Pressure | DHM25 | elv | m | \- |
-
-#### Precipitation
-
-Precipitation in mm can be used directly from the CH2025 DAILY-LOCAL and DAILY-GRIDDED data sets.
-
-#### Snow
-
-Snow, as required to calculate liquid to soil, is not available directly from the CH2025 datasets. I apply the same method as @helpapAreModernDroughts2026 to solve this, splitting precipitation into rain (for days with mean temperature \> 1 °C) and snow (for days with mean temperature \< 1 °C). These variables are then fed into *simulate_snow* function of the *cwd* R package.
+PCWD is calculated as in @helpapAreModernDroughts2026. It is the cumulative difference between potential evapotranspiration (PET, $\mathrm{mm\ day}^{-1}$) and the liquid water infiltrating into the root zone ($P_{\mathrm{in}}$, $\mathrm{mm\ day}^{-1}$). $P_{\mathrm{in}}$ equals precipitation when air temperature is above 1 °C and no snow is present. Below 1 °C, precipitation accumulates as snow and $P_{\mathrm{in}} = 0$. Snow melt is simulated above 1 °C at a rate of 1 $\mathrm{mm\ day}^{-1}\ {}^{\circ}\mathrm{C}^{-1}$, so on days with snow cover $P_{\mathrm{in}}$ is precipitation plus snow melt. The daily water balance $P_{\mathrm{in}} - \mathrm{PET}$ is accumulated over successive days with a negative balance, and each such sequence is an event. An event is terminated, and the cumulative sum reset to zero, when PCWD falls 10 mm below the maximum PCWD reached earlier in the same event. For each event, the maximum PCWD and the event length (days) are recorded. Only the event with the largest PCWD in each calendar year is retained for further analysis. The calculation is implemented in the cwd R package [@stocker2026cwd].
 
 #### Temperature
 
-Temperature in °C can be used directly from the CH2025 DAILY-LOCAL and DAILY-GRIDDED data sets.
+Temperature in °C can be used directly from the CH2025 DAILY-LOCAL and DAILY-GRIDDED data sets. The variables available are daily mean temperature (tas), daily minimum temperature (tasmin), and daily maximum temperature (tasmax).
+
+#### Precipitation
+
+Precipitation (pr) in mm can be used directly from the CH2025 DAILY-LOCAL and DAILY-GRIDDED data sets.
+
+#### Snow
+
+Snow, as required to calculate infiltration (liquid to soil), is not available directly from the CH2025 datasets. I apply the same method as @helpapAreModernDroughts2026 to solve this, splitting precipitation into rain (for days with mean temperature \> 1 °C) and snow (for days with mean temperature \< 1 °C). These variables are then fed into *simulate_snow* function of the *cwd* R package.
 
 #### Radiation
 
-Radiation in W/m2 can be used directly from the CH2025 DAILY-LOCAL dataset.
+PET according to the Priestley-Taylor equation is proportional to net radiation, i.e. the difference between incoming and outgoing shortwave and longwave radiation at the surface. CH2025 provides daily mean global radiation ($R_g$, $\mathrm{W\ m^{-2}}$) at 67 stations in DAILY-LOCAL (rsds), but no radiation at all in DAILY-GRIDDED. Net radiation ($R_n$) is therefore modelled from the variables that are available on the grid, in two steps.
+
+In the first step, $R_g$ is predicted from precipitation (pr), daily minimum and maximum temperature (Tmin, Tmax) and the clear-sky shortwave radiation (Rsw-cc). Rsw-cc is calculated for each grid cell and day from latitude, terrain slope, aspect and solar declination with the function radiation_potentialRadiation of the R package meteoland [@decaceres2018]. The model is then trained on the CH2025 stations that provide $R_g$ together with precipitation, Tmin and Tmax (62 stations, 203–3294 m a.s.l.), using data from the reference period and all warming levels, so that the relationship covers past and future climatic conditions.
+
+In the second step, $R_n$ is predicted from $R_g$, Tmin, Tmax, Prec and Rsw-cc. Observed $R_n$ is derived from SwissMetNet measurements as incoming minus reflected shortwave radiation plus incoming minus outgoing longwave radiation. The four SwissMetNet stations that measure all four components (Altdorf, Magadino, Payerne, Aadorf) serve as training data. 
+
+For both steps, multiple linear regression, k-nearest neighbours and random forest are compared. Performance is assessed with leave-one-site-out cross-validation, so each model is evaluated at at least one station not used for training. The metrics are mean absolute error (MAE), root mean square error (RMSE), bias and $R^2$. The best model is applied to the DAILY-GRIDDED data to obtain $R_n$ for the PET calculation. 
 
 #### Atmospheric Pressure
 
@@ -66,7 +60,7 @@ Atmospheric Pressure, as required to calculate PET, is not provided by the CH202
 
 #### Elevation
 
-CH2025 DAILY-GRIDDED Data comes is provided on a 1km grid. Metadata indicates that spatial resolution only covers the x and y axis, making it a two dimensional spatial representation. However, to calculate atmospheric pressure, elevation is needed. A raster is created matching the CH2025 DAILY-GRIDDED scale from the digital height model DHM25. DHM25 has a grid size of 200m with altitude interpolated from the landeskarte 1:25000. Since DHM25 doesn't cover the full spatial extent of CH2025 DAILY-GRIDDED, a mismatch results. The mismatch is deemed irrelevant.
+CH2025 DAILY-GRIDDED Data is provided on a 1km grid. Metadata indicates that spatial resolution only covers the x and y axis, making it a two dimensional spatial representation. However, to calculate atmospheric pressure, elevation is needed. A raster is created matching the CH2025 DAILY-GRIDDED scale from the digital height model DHM25. DHM25 has a grid size of 200m with altitude interpolated from landeskarte 1:25000. DHM25 data is downscaled to 1km using the mean of the underlying 200m grid cells. Since DHM25 doesn't cover the full spatial extent of CH2025 DAILY-GRIDDED, a mismatch results. The mismatch is deemed irrelevant.
 
 ![](images/mismatch_climate_vs_elevation.jpg)
 
@@ -74,25 +68,33 @@ CH2025 DAILY-GRIDDED Data comes is provided on a 1km grid. Metadata indicates th
 
 To calculate PCWD, the following workflow is applied:
 
-1.  Get data from CH2025 DAILY-GRIDDED dataset for every variable and every GWL, including the reference period 1991-2020. 
+1. **Prepare data for PCWD calculation**
 
-2.  Get data from meteoswiss radiation dataset for surface radiation balance (netradiation) for the complete available period 2004 to 2026.
+1.1 Get data from CH2025 DAILY-GRIDDED dataset for every variable and every GWL, including the reference period 1991-2020. 
 
-3.  Develop a machine learning model to predict net radiation based on CH2025 reference data and meteoswiss radiation data. Apply the model to the CH2025 forecast dataset. 
+1.2 Fill missing values in HADGEM simulations with the monthly mean of the respective variable.
 
-4.  Calculate liquid to soil by splitting precipitation into snow and rain (temperature threshold 0 °C) and applying the *simulate_snow* function to fill in rain, snow, snow_pool and liquid_to_soil columns.
+1.3 Get data from CH2025 DAILY-LOCAL dataset for all 62 stations that provide daily global radiation, temperature maximum, temperature minimum and precipitation for every GWL, including the reference period 1991-2020.
 
-5.  Calculate atmospheric pressure using the standard atmospheric pressure subject to elevation.
+1.4 Calculate clear-sky shortwave radiation (Rsw-cc) using the approach explained above.
 
-6.  calculate PET using PET function
+1.5 Calculate net radiation (Rn) using the approach explained above.
 
-7.  Calculate water balance: liquid to soil minus evapotranspiration
+1.6 Calculate infiltration by splitting precipitation into snow and rain as explained above.
 
-8.  Calculate daily cumulative water deficit and event-level annual maximum deficit and duration using cwd::cwd() with recovery rule applied at the wettest month of each year.
+1.7  Calculate atmospheric pressure using the standard atmospheric pressure subject to elevation.
 
-### Regional aggregation
+1.8  Calculate PET using PET function
 
-With PCWD calculated on a 1km grid using DAILY-GRIDDED, the results will be aggregated spatially, applying the definition for biogeographic regions as in @ClimateCH2025Scientific as shown below.
+1.9 Calculate water balance: liquid to soil minus evapotranspiration
+
+2.  **Calculate daily potential cumulative water deficit and event-level maximum deficit and duration using cwd::cwd() as explained above.**
+
+3. **Analyse results**
+
+3.1 Quantify ensemble spread of PCWD for each GWL and biogeographic region over the 30 year period.
+<details>
+<summary>Click to show the regional aggregation map</summary>
 
 ```{r biogeo-map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
 library(leaflet)
@@ -104,7 +106,12 @@ leaflet() |>
               options     = WMSTileOptions(format = "image/png", transparent = TRUE, opacity = 0.7),
               attribution = "Biogeographical regions: FOEN (BAFU) / geo.admin.ch") |>
   setView(lng = 8.2, lat = 46.8, zoom = 8)
-```
+
+
+3.2 Quantify maximum PCWD volume and event duration for each GWL and biogeographic region over the 30 year period.
+
+3.3 Quantify the frequency of drought events exceeding a given PCWD threshold for each GWL and biogeographic region over the 30 year period.
+
 
 ## Proof of Concept
 
@@ -114,7 +121,7 @@ knitr::include_graphics(here::here("figures", "cwd_ensemble_EVO_GWL_1_5.png"))
 
 ## Scope
 
-Only CH2025 data. no validation or bias correction.
+The thesis does not validate or bias-correct the datasets used. CH2025 is taken as provided, including its own bias adjustment and downscaling, and the SwissMetNet and MeteoSwiss radiation data are used as delivered. The model components that turn these data into PCWD are not validated either. I.e. the snow routine, the infiltration and the clear-sky radiation. The radiation model is trained on four stations. One fixed Priestley-Taylor coefficient is used. The thesis does not assess soil moisture, vegetation responses or drought impacts.
 
 ## Timeline
 
