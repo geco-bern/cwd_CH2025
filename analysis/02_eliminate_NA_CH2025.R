@@ -19,7 +19,7 @@ library(here)
 library(ncdf4)
 
 # ---- 1. Choices (EDIT) -----------------------------------------------
-dir_grid  <- here("data-raw", "CH2025", "DAILY_GRIDDED")
+dir_in  <- here("data-raw", "CH2025", "DAILY_GRIDDED")
 model     <- "clmcom-cclm4-cccma"
 parameter <- c("pr", "tas", "tasmin", "tasmax")   # variable(s) to check
 gwl       <- "gwl1.5"             # period(s) to check
@@ -30,7 +30,7 @@ out_csv   <- here("tables", "qc_na_filled_gridded.csv")
 files <- expand.grid(variable = parameter, gwl = gwl, stringsAsFactors = FALSE)
 files$file <- sprintf("ogd-climate-scenarios-ch2025-grid_ch_%s_%s_%s.nc",
                       files$variable, model, files$gwl)
-files$path <- file.path(dir_grid, files$file)
+files$path <- file.path(dir_in, files$file)
 
 missing <- !file.exists(files$path)
 if (any(missing)) stop("File(s) not found:\n", paste(files$file[missing], collapse = "\n"))
