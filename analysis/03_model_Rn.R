@@ -8,14 +8,14 @@ library(ggplot2)
 dir_in_local <- here("data-raw", "CH2025", "DAILY_LOCAL")
 dir_in_rsw   <- here("data", "rsw-cc")
 vars         <- c("pr", "tasmin", "tasmax", "rsds")
-max_stations <- 10          # quick test; later Inf
+max_stations <- Inf          
 n_per_group  <- 40
 models_use   <- c("lm", "knn", "rf", "gam")
 k_knn <- 20; n_trees <- 100; seed <- 1
 n_threads    <- max(1, parallel::detectCores() - 1)
-x_vars  <- c("pr_t", "tasmin", "tasmax", "rsw_cc")
+x_vars  <- c("pr_t", "tasmin", "tasmax", "rsw_cc", "elev")
 fml     <- reformulate(x_vars, response = "rsds")
-fml_gam <- as.formula(paste("rsds ~", paste0("s(", x_vars, ")", collapse = " + ")))
+fml_gam <- rsds ~ s(pr_t) + s(tasmin) + s(tasmax) + s(rsw_cc) + s(elev, k = 5)
 file_train <- here("data", "rg_training.rds")
 for (d in c("data", "tables", "figures")) dir.create(here(d), showWarnings = FALSE)
 
@@ -131,5 +131,5 @@ ggsave(here("figures", "rg_cv_rmse_by_elevation.jpg"),
 # Best model on all stations
 best <- by_method$method[which.min(by_method$RMSE)]
 message("Best model: ", best)
-saveRDS(list(model = fit_model(best, train), predictors = x_vars),
+saveRDS(list(model = fit_model(best, train), predictors = x_vars, k = k_knn),
         here("data", "rg_model_best.rds"))
