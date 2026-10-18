@@ -1,7 +1,7 @@
 ---
 title: "Drought projections for Switzerland - Thesis Proposal"
 author: "Thomas Jucker"
-date: "3 October 2026"
+date: "18 October 2026"
 bibliography: references.bib  
 output:
   html_document:
@@ -12,25 +12,24 @@ output:
 
 ## Context
 
-The summer of 2026 brought exceptional heat and dryness to large parts of Europe, with severe consequences for agriculture, forests, and grasslands. In Switzerland, 2026 was the strongest drought in the ERA5-Land reanalysis record since 1975, and an event of this magnitude would be expected only about twice per 1000 years in a climate without anthropogenic warming [@EuropeanDrought2026]. Meaningful drought projections must therefore look beyond long-term trends in precipitation. Drought impacts arise from the combined effect of several factors: the timing of precipitation events, changes in temperature and incoming solar radiation, and shifts in snow accumulation and snowmelt. These factors are particularly relevant for the response of forests and grasslands to drought. The most recent climate scenarios for Switzerland (CH2025) provide high-resolution projections of the climatic conditions that will shape future droughts. This thesis uses these projections to examine how climate warming alters the frequency and magnitude of drought across Switzerland. By doing so it provides information relevant to forest management, agriculture and water resource management. The resulting drought metrics can also serve as input for studies on forest fire risk and on how droughts affect vegetation productivity and carbon uptake.
+The summer of 2026 brought exceptional heat and dryness to large parts of Europe, with severe consequences for agriculture, forests, and grasslands. In Switzerland, 2026 was the strongest drought in the ERA5-Land reanalysis record since 1975. An event of this magnitude would be expected only about twice per 1000 years in a climate without anthropogenic warming [@EuropeanDrought2026]. Meaningful drought projections must therefore look beyond long-term trends in precipitation. Drought impacts arise from the combined effect of several factors: the timing of precipitation events, changes in temperature and incoming solar radiation, and shifts in snow accumulation and snowmelt. These factors are particularly relevant for the response of forests and grasslands to drought. The most recent climate scenarios for Switzerland (CH2025) provide high-resolution projections of the climatic conditions that will shape future droughts. This thesis uses these projections to examine how climate warming alters the frequency and magnitude of drought across Switzerland. By doing so it provides information relevant to forest management, agriculture and water resource management. The resulting drought metrics can also serve as input for studies on forest fire risk and on how droughts affect vegetation productivity and carbon uptake.
 
 ## Objective
 
-The aim of this thesis is to quantify how drought, expressed as the potential cumulative water deficit (PCWD), changes across Switzerland at different global warming levels (GWLs) in the CH2025 climate projections. I hypothesize that (1) the frequency and magnitude of drought events increase with global warming, with stronger increases at higher GWLs, and (2) the increase in absolute PCWD (mm) is spatially heterogeneous: strongest in the inner-Alpine dry valleys, followed by the Swiss Plateau, and weakest in the high Alps and the Alpine margins. Warming raises atmospheric water demand everywhere, mainly through a higher vapour pressure deficit [@ClimateCH2025Scientific]. Where precipitation is low, as in the inner-Alpine valleys, little water is available to compensate for this higher demand, so the deficit should grow fastest. In the high Alps, low temperatures and snowmelt supply buffer the increase, and the Alpine margins receive abundant precipitation. The results will be compared with the soil moisture and water availability droughts in the CH2025 Scientific Report [@ClimateCH2025Scientific], with the observed summer drying trends in Switzerland [@scherrerTrendsDriversRecent2022], and with the long-term drought variability of the past 600 years [@helpapAreModernDroughts2026].
+The aim of this thesis is to quantify how drought, expressed as the potential cumulative water deficit (PCWD), changes across Switzerland at different global warming levels (GWLs) in the CH2025 climate projections. I hypothesize that (1) the frequency and magnitude of drought events increase with global warming, with stronger increases at higher GWLs, and (2) the increase in absolute PCWD (mm) is spatially heterogeneous: strongest in the inner-Alpine dry valleys, followed by the Swiss Plateau, and weakest in the high Alps and the Alpine margins. Warming raises atmospheric water demand everywhere, mainly through a higher vapour pressure deficit [@ClimateCH2025Scientific]. Where precipitation is low, as in the inner-Alpine valleys, little water is available to compensate for this higher demand, so the deficit should grow faster. In the high Alps, low temperatures and snowmelt supply buffer the increase, and the Alpine margins receive abundant precipitation. The results will be compared with the soil moisture and water availability droughts in the CH2025 Scientific Report [@ClimateCH2025Scientific], with the observed summer drying trends in Switzerland [@scherrerTrendsDriversRecent2022], and with the long-term drought variability of the past 600 years [@helpapAreModernDroughts2026].
 
 ## Materials and Methods
 
-I investigate drought using the potential cumulative water deficit (PCWD) as defined by @helpapAreModernDroughts2026. Through PCWD, intensity and frequency of drought events are quantified. PCWD is calculated from daily precipitation, temperature, and radiation data. The analysis will be conducted for the GWLs 1.5, 2.0, 2.5 and 3.0 °C above pre-industrial levels, for all the available climate model simulations in the CH2025 dataset. The analysis is conducted on a 1 km grid across Switzerland, and results are aggregated to the biogeographic regions defined by the Swiss Federal Office for the Environment (FOEN) [@ClimateCH2025Scientific].
+I investigate drought using the potential cumulative water deficit (PCWD) as defined by @helpapAreModernDroughts2026. Through PCWD, intensity and frequency of drought events are quantified. PCWD is calculated from daily precipitation, temperature, and radiation data. The analysis will be conducted for the GWLs 1.5, 2.0, 2.5 and 3.0 °C above pre-industrial levels, for all the available climate model simulations in the CH2025 dataset. The analysis is conducted on a 1 km grid across Switzerland, and results are aggregated to the biogeographic regions defined by the Swiss Federal Office for the Environment [@ClimateCH2025Scientific].
 
 ### Climate CH2025 datasets
 
-The Climate CH2025 datasets are provided by the Swiss Federal Office for Meteorology and Climatology (MeteoSwiss) in two formats: gridded and local. The gridded data comprise daily time series of several meteorological variables on a high-resolution 1 km grid (DAILY-GRIDDED). Each simulation has one NetCDF file per variable and GWL. I.e. the NetCDF file for daily mean temperature with the simulation clmcom-cclm4-cccma and GWL1.5 is *ogd-climate-scenarios-ch2025-grid_ch_tas_clmcom-cclm4-cccma_gwl1.5.nc.*. the .nc file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every grid cell (column). DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full spatial and temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 for both DAILY-GRIDDED and DAILY-LOCAL @ClimateCH2025Datasets.
-
+The Climate CH2025 datasets are provided by the Swiss Federal Office for Meteorology and Climatology (MeteoSwiss) in two formats: gridded and local. The gridded data comprise daily time series of several meteorological variables on a high-resolution 1 km grid (DAILY-GRIDDED). Each simulation has one NetCDF file per variable and GWL. I.e. the NetCDF file for daily mean temperature with the simulation clmcom-cclm4-cccma and GWL1.5 is *ogd-climate-scenarios-ch2025-grid_ch_tas_clmcom-cclm4-cccma_gwl1.5.nc.*. the .nc file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every grid cell (column). DAILY-LOCAL data is structured by stations. Each station has one .csv file covering the full temporal extent for every GWL and variable. I.e. the CSV file for daily mean temperature at the station Adelboden and GWL1.5 is *ogd-climate-scenarios-ch2025_ABO_tas_GWL1.5.csv.* The .csv file contains the value for that variable and GWL for every simulated day for 30 years (row) and for every Simulation (column). Files are also provided for the model reference period 1991-2020 for both DAILY-GRIDDED and DAILY-LOCAL @ClimateCH2025Datasets.
 Simulations for pr, tas and rsds involving HADGEM are consistently missing 5 values per year, randomly distributed over the year. These missing values will be filled with the monthly mean of the respective variable.
 
 ### Calculating PCWD
 
-PCWD is calculated as in @helpapAreModernDroughts2026. It is the cumulative difference between potential evapotranspiration (PET, $\mathrm{mm\ day}^{-1}$) and the liquid water infiltrating into the root zone ($P_{\mathrm{in}}$, $\mathrm{mm\ day}^{-1}$). $P_{\mathrm{in}}$ equals precipitation when air temperature is above 1 °C and no snow is present. Below 1 °C, precipitation accumulates as snow and $P_{\mathrm{in}} = 0$. Snow melt is simulated above 1 °C at a rate of 1 $\mathrm{mm\ day}^{-1}\ {}^{\circ}\mathrm{C}^{-1}$, so on days with snow cover $P_{\mathrm{in}}$ is precipitation plus snow melt. The daily water balance $P_{\mathrm{in}} - \mathrm{PET}$ is accumulated over successive days with a negative balance, and each such sequence is an event. An event is terminated, and the cumulative sum reset to zero, when PCWD falls 10 mm below the maximum PCWD reached earlier in the same event. For each event, the maximum PCWD and the event length (days) are recorded. Only the event with the largest PCWD in each calendar year is retained for further analysis. The calculation is implemented in the cwd R package [@stocker2026cwd].
+PCWD is calculated as in @helpapAreModernDroughts2026. It is the cumulative difference between potential evapotranspiration (PET, $\mathrm{mm\ day}^{-1}$) and the liquid water infiltrating into the root zone ($P_{\mathrm{in}}$, $\mathrm{mm\ day}^{-1}$). $P_{\mathrm{in}}$ equals precipitation when air temperature is above 1 °C and no snow is present. Below 1 °C, precipitation accumulates as snow and $P_{\mathrm{in}} = 0$. Snow melt is simulated above 1 °C at a rate of 1 $\mathrm{mm\ day}^{-1}\ {}^{\circ}\mathrm{C}^{-1}$, so on days with snow cover $P_{\mathrm{in}}$ is precipitation plus snow melt. The daily water balance $P_{\mathrm{in}} - \mathrm{PET}$ is accumulated over successive days with a negative balance, and each such sequence is an event. An event is terminated, and the cumulative sum reset to zero, when PCWD falls 10 mm below the maximum PCWD reached earlier in the same event. For each event, the maximum PCWD and the event length (days) are recorded. Only the event with the largest PCWD in each calendar year is retained for further analysis. The calculation is implemented in the cwd R package [@stockerGecobernCwdCwd2026].
 
 #### Temperature
 
@@ -48,11 +47,11 @@ Snow, as required to calculate infiltration (liquid to soil), is not available d
 
 PET according to the Priestley-Taylor equation is proportional to net radiation, i.e. the difference between incoming and outgoing shortwave and longwave radiation at the surface. CH2025 provides daily mean global radiation ($R_g$, $\mathrm{W\ m^{-2}}$) at 67 stations in DAILY-LOCAL (rsds), but no radiation at all in DAILY-GRIDDED. Net radiation ($R_n$) is therefore modelled from the variables that are available on the grid, in two steps.
 
-In the first step, $R_g$ is predicted from precipitation (pr), daily minimum and maximum temperature (Tmin, Tmax) and the clear-sky shortwave radiation (Rsw-cc). Rsw-cc is calculated for each grid cell and day from latitude, terrain slope, aspect and solar declination with the function radiation_potentialRadiation of the R package meteoland [@decaceres2018]. The model is then trained on the CH2025 stations that provide $R_g$ together with precipitation, Tmin and Tmax (62 stations, 203–3294 m a.s.l.), using data from the reference period and all warming levels, so that the relationship covers past and future climatic conditions.
+In the first step, $R_g$ is predicted from precipitation (pr), daily minimum and maximum temperature (Tmin, Tmax), the clear-sky shortwave radiation (Rsw-cc) and elevation. Rsw-cc is calculated for each grid cell and day from latitude, terrain slope, aspect and solar declination with the function radiation_potentialRadiation of the R package meteoland [@decaceresEstimatingDailyMeteorological2018], assuming aspect and slope equal to zero. The model is then trained on the CH2025 stations that provide $R_g$ together with precipitation, Tmin and Tmax (61 stations, 203–3294 m a.s.l.), using data from the reference period and all warming levels, so that the relationship covers past and future climatic conditions.
 
-In the second step, $R_n$ is predicted from $R_g$, Tmin, Tmax, Prec and Rsw-cc. Observed $R_n$ is derived from SwissMetNet measurements as incoming minus reflected shortwave radiation plus incoming minus outgoing longwave radiation. The four SwissMetNet stations that measure all four components (Altdorf, Magadino, Payerne, Aadorf) serve as training data. 
+In the second step, $R_n$ is predicted from $R_g$, Tmin, Tmax, Prec, Rsw-cc and elevation. Observed $R_n$ is derived from SwissMetNet measurements as incoming minus reflected shortwave radiation plus incoming minus outgoing longwave radiation. The four SwissMetNet stations that measure all four components (Altdorf, Magadino, Payerne, Aadorf) serve as training data. 
 
-For both steps, multiple linear regression, k-nearest neighbours and random forest are compared. Performance is assessed with leave-one-site-out cross-validation, so each model is evaluated at at least one station not used for training. The metrics are mean absolute error (MAE), root mean square error (RMSE), bias and $R^2$. The best model is applied to the DAILY-GRIDDED data to obtain $R_n$ for the PET calculation. 
+For both steps, multiple linear regression, k-nearest neighbours, generalized additive model and random forest are compared. Performance is assessed with leave-one-site-out cross-validation, so each model is evaluated at at least one station not used for training. The metrics are mean absolute error (MAE), root mean square error (RMSE), bias and $R^2$. The best model is applied to the DAILY-GRIDDED data to obtain $R_n$ for the PET calculation. 
 
 #### Atmospheric Pressure
 
@@ -68,13 +67,13 @@ CH2025 DAILY-GRIDDED Data is provided on a 1km grid. Metadata indicates that spa
 
 To calculate PCWD, the following workflow is applied:
 
-1. **Prepare data for PCWD calculation**
+1. Prepare data for PCWD calculation
 
 1.1 Get data from CH2025 DAILY-GRIDDED dataset for every variable and every GWL, including the reference period 1991-2020. 
 
-1.2 Fill missing values in HADGEM simulations with the monthly mean of the respective variable.
+1.2 Fill missing values with the monthly mean of the respective variable.
 
-1.3 Get data from CH2025 DAILY-LOCAL dataset for all 62 stations that provide daily global radiation, temperature maximum, temperature minimum and precipitation for every GWL, including the reference period 1991-2020.
+1.3 Get data from CH2025 DAILY-LOCAL dataset for all 61 stations that provide daily global radiation, temperature maximum, temperature minimum and precipitation for every GWL, including the reference period 1991-2020.
 
 1.4 Calculate clear-sky shortwave radiation (Rsw-cc) using the approach explained above.
 
@@ -88,11 +87,12 @@ To calculate PCWD, the following workflow is applied:
 
 1.9 Calculate water balance: liquid to soil minus evapotranspiration
 
-2.  **Calculate daily potential cumulative water deficit and event-level maximum deficit and duration using cwd::cwd() as explained above.**
+2.  Calculate daily potential cumulative water deficit and event-level maximum deficit and duration using cwd::cwd() as explained above.
 
-3. **Analyse results**
+3. Analyse results
 
 3.1 Quantify ensemble spread of PCWD for each GWL and biogeographic region over the 30 year period.
+
 <details>
 <summary>Click to show the regional aggregation map</summary>
 
@@ -107,21 +107,16 @@ leaflet() |>
               attribution = "Biogeographical regions: FOEN (BAFU) / geo.admin.ch") |>
   setView(lng = 8.2, lat = 46.8, zoom = 8)
 
+```
+</details>
 
 3.2 Quantify maximum PCWD volume and event duration for each GWL and biogeographic region over the 30 year period.
 
 3.3 Quantify the frequency of drought events exceeding a given PCWD threshold for each GWL and biogeographic region over the 30 year period.
 
-
-## Proof of Concept
-
-```{r cwd-ensemble-figure, echo=FALSE, out.width="100%", fig.cap="Daily cumulative water deficit across the EVO GWL 1.5 ensemble. The red line shows the ensemble median and the shaded band the 10th–90th percentile range."}
-knitr::include_graphics(here::here("figures", "cwd_ensemble_EVO_GWL_1_5.png"))
-```
-
 ## Scope
 
-The thesis does not validate or bias-correct the datasets used. CH2025 is taken as provided, including its own bias adjustment and downscaling, and the SwissMetNet and MeteoSwiss radiation data are used as delivered. The model components that turn these data into PCWD are not validated either. I.e. the snow routine, the infiltration and the clear-sky radiation. The radiation model is trained on four stations. One fixed Priestley-Taylor coefficient is used. The thesis does not assess soil moisture, vegetation responses or drought impacts.
+The thesis does not validate or bias-correct the datasets used. CH2025 is taken as provided, including its own bias adjustment and downscaling and the SwissMetNet data is used as delivered. The model components that turn these data into PCWD are not validated either. I.e. the snow routine, the infiltration and the clear-sky radiation. The radiation model is trained on four stations. One fixed Priestley-Taylor coefficient is used. The thesis does not assess soil moisture, vegetation responses or drought impacts.
 
 ## Timeline
 
@@ -134,7 +129,7 @@ tl <- tribble(
   "Interim meeting",                              "2026-10-08", NA,           "Milestone",
   "Evaluation proposal",                          "2026-10-19", "2026-10-20", "Phase",
   "Discussion proposal",                          "2026-10-20", NA,           "Milestone",
-  "Data transformation",                          "2026-10-21", "2026-11-01", "Phase",
+  "Data preparation",                          "2026-10-21", "2026-11-01", "Phase",
   "PCWD calculation",                             "2026-11-02", "2026-11-08", "Phase",
   "Visualisation",                                "2026-11-09", "2026-11-22", "Phase",
   "Ubelix first try",                             "2026-11-23", "2026-12-04", "Phase",
