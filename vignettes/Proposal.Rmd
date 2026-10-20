@@ -8,6 +8,11 @@ output:
     toc: true
     toc_depth: 3
     toc_float: true
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: false
+    latex_engine: xelatex
 ---
 
 ## Context
@@ -96,7 +101,17 @@ To calculate PCWD, the following workflow is applied:
 <details>
 <summary>Click to show the regional aggregation map</summary>
 
-```{r biogeo-map, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
+```{r biogeo-map-static, eval=knitr::is_latex_output(), echo=FALSE, out.width="100%", fig.cap="Biogeographical regions of Switzerland (FOEN / geo.admin.ch)."}
+# PDF output cannot show the interactive leaflet map, so a static WMS image is used instead
+wms_png <- file.path(tempdir(), "biogeo_regions.png")
+download.file(paste0("https://wms.geo.admin.ch/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap",
+                     "&LAYERS=ch.bafu.biogeographische_regionen&STYLES=&CRS=EPSG:2056",
+                     "&BBOX=2480000,1070000,2840000,1300000&WIDTH=1800&HEIGHT=1150&FORMAT=image/png"),
+              wms_png, mode = "wb", quiet = TRUE)
+knitr::include_graphics(wms_png)
+```
+
+```{r biogeo-map, eval=!knitr::is_latex_output(), echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
 library(leaflet)
 
 leaflet() |>
