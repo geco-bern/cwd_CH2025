@@ -19,8 +19,10 @@ run_cv_rg    <- FALSE        # TRUE to rerun the step 1 CV (slow, only needed wh
 n_threads    <- max(1, parallel::detectCores() - 1)
 x_vars  <- c("pr_t", "tasmin", "tasmax", "rsw_cc", "elev")
 fml     <- reformulate(x_vars, response = "rsds")
-file_train <- here("data", "rg_training.rds")
+dir_model  <- here("data", "radiation_models")
+file_train <- file.path(dir_model, "rg_training.rds")
 for (d in c("data", "tables", "figures")) dir.create(here(d), showWarnings = FALSE)
+dir.create(dir_model, showWarnings = FALSE)
 
 # Reader for one CH2025 csv (table starts at the line "DATE;")
 read_ch2025 <- function(path) {
@@ -123,7 +125,7 @@ if (run_cv_rg) {
 
 # Final random forest on all stations
 saveRDS(list(model = fit_rf(train), predictors = x_vars),
-        here("data", "rg_model_rf.rds"))
+        file.path(dir_model, "rg_model_rf.rds"))
 
 
 # Step 2: Train a random forest for net radiation (Rn) on four SwissMetNet stations
@@ -167,7 +169,7 @@ smn <- left_join(smn, rsw_doy, by = c("station", "doy"))
 stopifnot(!anyNA(smn$rsw_cc))
 
 # Step 2.4: Simulate Rg with the step 1 model (and check it against observed Rg)
-rg_model   <- readRDS(here("data", "rg_model_rf.rds"))
+rg_model   <- readRDS(file.path(dir_model, "rg_model_rf.rds"))
 smn$rg_sim <- predict_rf(rg_model$model, smn)
 rg_check   <- smn |> transmute(station, rsds = rg_obs, pred = rg_sim) |> group_by(station) |> summ()
 print(rg_check)
@@ -205,5 +207,5 @@ ggsave(here("figures", "rn_cv_obs_vs_pred.jpg"),
 
 # Step 2.8: Final Rn random forest on all four stations
 saveRDS(list(model = fit_rf_rn(smn), predictors = x_vars_rn),
-        here("data", "rn_model_rf.rds"))
+        file.path(dir_model, "rn_model_rf.rds"))
 

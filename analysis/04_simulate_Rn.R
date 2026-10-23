@@ -1,4 +1,4 @@
-# run 03_model_Rn.R first to create data/rg_model_rf.rds and data/rn_model_rf.rds
+# run 03_model_Rn.R first to create data/radiation_models/rg_model_rf.rds and rn_model_rf.rds
 # applies the two-step random forest on the CH2025 daily grid:
 # Tmin, Tmax, Prec, Rsw-cc, elevation -> Rg (step 1) -> Rn (step 2), written to one NetCDF file
 
@@ -16,7 +16,7 @@ block_rows <- 10                 # rows of the grid processed at once
 n_threads  <- max(1, parallel::detectCores() - 1)
 run_full   <- TRUE              # FALSE: only the test block, TRUE: the whole grid
 
-out_dir  <- here("data", "netradiation")
+out_dir  <- here("data", "netradiation_sim")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 out_file <- file.path(out_dir, sprintf("grid_ch_rn_%s_%s.nc", model, period))
 rsw_file <- here("data", "rsw-cc", "meteoland_grid_ch_rswcc.nc")
@@ -69,8 +69,9 @@ stopifnot(ncol(r_tasmin) == length(E_vals), nrow(r_tasmin) == length(N_vals),
           nlyr(r_tasmin) == n_days, all(res(r_tasmin) == res_m),
           all(as.vector(ext(r_tasmin)) == c(range(E_vals), range(N_vals)) + c(-1, 1, -1, 1) * res_m / 2))
 
-rg_model <- readRDS(here("data", "rg_model_rf.rds"))
-rn_model <- readRDS(here("data", "rn_model_rf.rds"))
+dir_model <- here("data", "radiation_models")
+rg_model  <- readRDS(file.path(dir_model, "rg_model_rf.rds"))
+rn_model  <- readRDS(file.path(dir_model, "rn_model_rf.rds"))
 print(rg_model$predictors); print(rn_model$predictors)
 
 doy <- rep(1:365, length.out = n_days)            # 365_day calendar, no Feb 29
