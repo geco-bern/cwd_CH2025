@@ -1,5 +1,6 @@
 # run calc_rsw-cc.R first to create the rsw-cc files in data/rsw-cc
-# two step approach: first train a random forest on the CH2025 daily local data, then use the trained model to predict net radiation on four swissmetnet stations
+
+# three step approach: first train a random forest on the CH2025 daily local data, then use the trained model to predict net radiation on four swissmetnet stations
 
 # Step 1: Train a random forest on the CH2025 daily local data
 
@@ -205,3 +206,4 @@ ggsave(here("figures", "rn_cv_obs_vs_pred.jpg"),
 # Step 2.8: Final Rn random forest on all four stations
 saveRDS(list(model = fit_rf_rn(smn), predictors = x_vars_rn),
         here("data", "rn_model_rf.rds"))
+
