@@ -1,5 +1,11 @@
+## Calculate daily potential shortwave radiation (Rsw-cc) for the CH2025 stations (1) and grid (2)
+
 library(here)
 library(meteoland)
+library(terra)
+library(ncdf4)
+
+# 1. Calculate daily potential shortwave radiation (Rsw-cc) for the CH2025 stations 
 
 dir_in  <- here("data-raw", "CH2025", "DAILY_LOCAL")
 dir_out <- here("data", "rsw-cc")
@@ -19,12 +25,12 @@ meta <- read.csv(file.path(dir_in, "ogd-climate-scenarios-ch2025_meta_stations.c
 meta <- meta[match(toupper(stations), meta$station_abbr), ]
 
 # daily potential shortwave radiation (rsw-cc) in W m-2 for 365 days, flat surface
-calc_rsw_cc <- function(lat_deg) {
-  d     <- seq(as.Date("2025-01-01"), by = "day", length.out = 365)
-  J     <- radiation_dateStringToJulianDays(format(d, "%Y-%m-%d"))
-  delta <- vapply(J, radiation_solarDeclination, numeric(1))
-  sc    <- vapply(J, radiation_solarConstant, numeric(1))
+d     <- seq(as.Date("2025-01-01"), by = "day", length.out = 365)
+J     <- radiation_dateStringToJulianDays(format(d, "%Y-%m-%d"))
+delta <- vapply(J, radiation_solarDeclination, numeric(1))
+sc    <- vapply(J, radiation_solarConstant, numeric(1))
 
+calc_rsw_cc <- function(lat_deg) {
   pot <- mapply(function(s, dl)
     radiation_potentialRadiation(s, lat_deg * pi / 180, 0, 0, dl), sc, delta)
 
@@ -49,3 +55,29 @@ for (i in seq_along(stations)) {
             file.path(dir_out, paste0("meteoland_", stations[i], "_rswcc.csv")),
             row.names = FALSE)
 }
+
+# 2. rsw-cc on the CH2025 1 km grid: meteoland_grid_ch_rswcc.nc
+
+source(here("R", "nc_grid_ch.R"))                    # grid layout, create_nc()
+
+file_grid <- here("data-raw", "CH2025", "DAILY_GRIDDED",
+                  "ogd-climate-scenarios-ch2025-grid_ch_tasmin_clmcom-cclm4-cccma_gwl1.5.nc")
+nc   <- nc_open(file_grid)
+lon  <- ncvar_get(nc, "lon")                         # E x N (N south to north)
+lat  <- ncvar_get(nc, "lat")
+land <- which(!is.na(ncvar_get(nc, "tasmin", start = c(1, 1, 1), count = c(-1, -1, 1))))
+nc_close(nc)
+
+rsw_grid <- matrix(fill, nrow = length(lat), ncol = 365)   # cells (file order) x doy
+rsw_grid[land, ] <- t(vapply(lat[land], calc_rsw_cc, numeric(365)))
+
+file_rsw <- file.path(dir_out, "meteoland_grid_ch_rswcc.nc")
+create_nc(file_rsw, "rsw_cc", "W m-2",
+          "Daily potential shortwave radiation on a flat surface (Rsw-cc)", dim_doy,
+          lon = lon, lat = lat,
+          var_atts  = list(method = "meteoland::radiation_potentialRadiation, slope 0, aspect 0, latitude of each cell"),
+          glob_atts = list(title = "Daily potential shortwave radiation (Rsw-cc) on the CH2025 1 km grid"),
+          source    = "R/calc_rsw-cc.R")
+nc <- nc_open(file_rsw, write = TRUE)
+ncvar_put(nc, "rsw_cc", array(rsw_grid, dim = c(dim(lat), 365)))
+nc_close(nc)
