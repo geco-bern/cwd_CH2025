@@ -5,4 +5,8 @@
 
 # large climate data (download separately)
 data-raw/
-data/
+data/*
+
+# small derived data that is shared via GitHub
+!data/elevation/
+!data/rsw-cc/
