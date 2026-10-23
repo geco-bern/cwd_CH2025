@@ -14,7 +14,7 @@ model      <- "clmcom-cclm4-cccma"
 period     <- "gwl1.5"
 block_rows <- 10                 # rows of the grid processed at once
 n_threads  <- max(1, parallel::detectCores() - 1)
-run_full   <- FALSE              # FALSE: only the test block, TRUE: the whole grid
+run_full   <- TRUE              # FALSE: only the test block, TRUE: the whole grid
 
 out_dir  <- here("data", "netradiation")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
