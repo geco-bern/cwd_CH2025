@@ -21,7 +21,6 @@ temp_snow  <- 0                  # deg C: precipitation below this falls as snow
 doy_reset  <- 1                  # deficit reset every year on 1 January
 block_rows <- 10                 # rows of the grid processed at once
 n_cores    <- max(1, detectCores() - 1)
-run_full   <- FALSE              # FALSE: only the test block, TRUE: the whole grid
 
 rn_file  <- here("data", "netradiation_sim", sprintf("grid_ch_rn_%s_%s.nc", model, period))
 out_dir  <- here("data", "pcwd")
@@ -115,39 +114,17 @@ create_nc(out_file, "pcwd", "mm", "Daily potential cumulative water deficit", di
                            GWL        = toupper(period),
                            modelchain = toupper(model),
                            frequency  = "day"),
-          source = "analysis/XX_apply_pcwd_CH2025.R")
+          source = "analysis/05_apply_pcwd_CH2025.R")
 
-# ---- 8. Test on the block with the most cells --------------------------------------
+# ---- 8. Run over all blocks with cells with data -------------------------------
 starts     <- seq(1, nrow(r_tas), by = block_rows)
 hd         <- as.matrix(!is.na(r_tas[[1]]), wide = TRUE)
 n_by_block <- sapply(starts, function(s) sum(hd[s:min(s + block_rows - 1, nrow(hd)), ]))
-s_test     <- starts[which.max(n_by_block)]
 
-t_test <- system.time({
-  pcwd_blk <- process_block(s_test)
-  write_block(out_file, "pcwd", pcwd_blk, s_test)
-})
-print(t_test)
-cat("estimated full run (min):", round(t_test[["elapsed"]] * sum(n_by_block) / max(n_by_block) / 60), "\n")
-
-land <- !is.na(pcwd_blk[, 1])
-cat("cells computed:", sum(land), "of", n_by_block[which.max(n_by_block)], "\n")
-ann_max <- sapply(split(seq_len(n_days), rep(1:30, each = 365)),
-                  function(j) apply(pcwd_blk[land, j], 1, max))   # cells x 30 years
-print(summary(as.vector(ann_max)))                              # annual maximum PCWD (mm)
-
-r_out <- rast(out_file)
-print(compareGeom(r_out, r_tas))                                # same grid as the input?
-chk <- values(r_out, row = s_test, nrows = block_rows, mat = TRUE)
-print(all.equal(chk[land, ], pcwd_blk[land, ], tolerance = 1e-4, check.attributes = FALSE))
-
-# ---- 9. Full run over all blocks ------------------------------------------------
-if (run_full) {
-  for (s in starts[n_by_block > 0]) {
-    message("block starting at row ", s, " (", Sys.time(), ")")
-    write_block(out_file, "pcwd", process_block(s), s)
-  }
-  message("Done: ", out_file)
+for (s in starts[n_by_block > 0]) {
+  message("block starting at row ", s, " (", Sys.time(), ")")
+  write_block(out_file, "pcwd", process_block(s), s)
 }
+message("Done: ", out_file)
 
 stopCluster(cl)

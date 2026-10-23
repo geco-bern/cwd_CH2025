@@ -101,7 +101,7 @@ create_nc(out_file, "rn", "W m-2", "Daily mean net radiation", dim_time,
                            CORDEX_domain         = "EUR11"),
           source = "analysis/04_simulate_Rn.R")
 
-# ---- 5. Run over all blocks with land cells ------------------------------------
+# ---- 5. Run over all blocks with cells with data -------------------------------
 starts     <- seq(1, nrow(r_tasmin), by = block_rows)
 hd         <- as.matrix(!is.na(r_tasmin[[1]]), wide = TRUE)
 n_by_block <- sapply(starts, function(s) sum(hd[s:min(s + block_rows - 1, nrow(hd)), ]))
