@@ -65,11 +65,11 @@ file_grid <- here("data-raw", "CH2025", "DAILY_GRIDDED",
 nc   <- nc_open(file_grid)
 lon  <- ncvar_get(nc, "lon")                         # E x N (N south to north)
 lat  <- ncvar_get(nc, "lat")
-land <- which(!is.na(ncvar_get(nc, "tasmin", start = c(1, 1, 1), count = c(-1, -1, 1))))
+with_data <- which(!is.na(ncvar_get(nc, "tasmin", start = c(1, 1, 1), count = c(-1, -1, 1))))  # cells with data
 nc_close(nc)
 
 rsw_grid <- matrix(fill, nrow = length(lat), ncol = 365)   # cells (file order) x doy
-rsw_grid[land, ] <- t(vapply(lat[land], calc_rsw_cc, numeric(365)))
+rsw_grid[with_data, ] <- t(vapply(lat[with_data], calc_rsw_cc, numeric(365)))
 
 file_rsw <- file.path(dir_out, "meteoland_grid_ch_rswcc.nc")
 create_nc(file_rsw, "rsw_cc", "W m-2",
