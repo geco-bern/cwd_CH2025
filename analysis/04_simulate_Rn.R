@@ -19,10 +19,42 @@ run_full   <- FALSE              # FALSE: only the test block, TRUE: the whole g
 out_dir  <- here("data", "netradiation")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 out_file <- file.path(out_dir, sprintf("grid_ch_rn_%s_%s.nc", model, period))
+rsw_file <- here("data", "rsw-cc", "meteoland_grid_ch_rswcc.nc")
 
 nc_path <- function(var)
   file.path(dir_grid, sprintf("ogd-climate-scenarios-ch2025-grid_ch_%s_%s_%s.nc",
                               var, model, period))
+
+# ---- 1b. Layout of the output NetCDF files ---------------------------------
+# regular 1 km grid in CH1903+ / LV95, coordinates = cell centres
+res_m  <- 1000
+E_vals <- seq(2474500, 2843500, by = res_m)       # easting,  370 cells, west to east
+N_vals <- seq(1064500, 1303500, by = res_m)       # northing, 240 cells, south to north
+n_days <- 30 * 365                                # 30 years, 365_day calendar (no Feb 29)
+fill   <- -999.99                                 # value outside Switzerland
+
+dim_E    <- ncdim_def("E", "meters", E_vals, longname = "swiss easting (lv95)")
+dim_N    <- ncdim_def("N", "meters", N_vals, longname = "swiss northing (lv95)")
+dim_time <- ncdim_def("time", "days since 1-1-1 00:00:00", 0:(n_days - 1),
+                      unlim = TRUE, calendar = "365_day", longname = "time")
+dim_doy  <- ncdim_def("doy", "day of year", 1:365,
+                      longname = "day of year (365_day calendar, no Feb 29)")
+
+# CF grid mapping of LV95 (EPSG:2056)
+crs_atts <- list(grid_mapping_name                 = "oblique_mercator",
+                 longitude_of_projection_origin    = 7.43958333,
+                 latitude_of_projection_origin     = 46.9524056,
+                 azimuth_of_central_line           = 90,
+                 scale_factor_at_projection_origin = 1,
+                 false_easting                     = 2600000,
+                 false_northing                    = 1200000,
+                 reference_ellipsoid_name          = "Bessel 1841",
+                 semi_major_axis                   = 6377397.155,
+                 inverse_flattening                = 299.1528128,
+                 horizontal_datum_name             = "CH1903+",
+                 prime_meridian_name               = "Greenwich",
+                 crs_wkt                           = crs("EPSG:2056"),
+                 spatial_ref                       = crs("EPSG:2056"))
 
 # ---- 2. Inputs: climate grids, elevation, models --------------------------
 r_tasmin <- rast(nc_path("tasmin"))
@@ -32,18 +64,23 @@ elv      <- rast(here("data", "elevation", "elevation_1k_grid.tif"))
 stopifnot(compareGeom(r_tasmin, r_tasmax), compareGeom(r_tasmin, r_pr),
           compareGeom(r_tasmin, elv))
 
+# the input grid must have the layout defined in 1b
+stopifnot(ncol(r_tasmin) == length(E_vals), nrow(r_tasmin) == length(N_vals),
+          nlyr(r_tasmin) == n_days, all(res(r_tasmin) == res_m),
+          all(as.vector(ext(r_tasmin)) == c(range(E_vals), range(N_vals)) + c(-1, 1, -1, 1) * res_m / 2))
+
 rg_model <- readRDS(here("data", "rg_model_rf.rds"))
 rn_model <- readRDS(here("data", "rn_model_rf.rds"))
 print(rg_model$predictors); print(rn_model$predictors)
 
-n_days <- nlyr(r_tasmin)                          # 10950 = 30 years x 365 days
-doy    <- rep(1:365, length.out = n_days)         # 365_day calendar, no Feb 29
+doy <- rep(1:365, length.out = n_days)            # 365_day calendar, no Feb 29
 
-# ---- 3. Latitude and elevation of every cell (grid order, north to south) --
-elv_vals <- values(elv)[, 1]
-nc_lat   <- nc_open(nc_path("tasmin"))
-lat      <- ncvar_get(nc_lat, "lat")              # E x N, N runs south to north
-nc_close(nc_lat)
+# ---- 3. Latitude and elevation of every cell ------------------------------
+elv_vals <- values(elv)[, 1]                      # grid order, north to south
+nc_ll    <- nc_open(nc_path("tasmin"))
+lon      <- ncvar_get(nc_ll, "lon")               # E x N, N runs south to north
+lat      <- ncvar_get(nc_ll, "lat")
+nc_close(nc_ll)
 lat_vals <- as.vector(lat[, ncol(lat):1])         # flip to terra order (north first)
 
 # ---- 4. Rsw-cc: same function as R/calc_rsw-cc.R (flat surface, W m-2, 365 days) --
@@ -58,49 +95,61 @@ calc_rsw_cc <- function(lat_deg) {
 }
 print(round(calc_rsw_cc(46.81)[c(1, 172, 365)], 2))  # PAY: compare with meteoland_pay_rswcc.csv
 
-# ---- 4b. Save gridded Rsw-cc (365 days, identical for every year) -------------------
-rsw_file <- here("data", "rsw-cc", "meteoland_grid_ch_rswcc.nc")
-if (!file.exists(rsw_file)) {
-  land     <- which(!is.na(values(r_tasmin[[1]])[, 1]))       # cells with data (Switzerland)
-  rsw_grid <- matrix(NA_real_, nrow = ncell(r_tasmin), ncol = 365)
-  rsw_grid[land, ] <- t(vapply(lat_vals[land], calc_rsw_cc, numeric(365)))
-
-  arr <- array(rsw_grid, dim = c(ncol(r_tasmin), nrow(r_tasmin), 365))  # E x rows (north first) x doy
-  arr <- arr[, nrow(r_tasmin):1, ]                                       # the file runs south to north
-  arr[is.na(arr)] <- -999.99
-
-  nc_in   <- nc_open(nc_path("tasmin"))
-  dim_E   <- ncdim_def("E", "meters", nc_in$dim$E$vals)
-  dim_N   <- ncdim_def("N", "meters", nc_in$dim$N$vals)
-  dim_doy <- ncdim_def("doy", "day of year", 1:365,
-                       longname = "day of year (365_day calendar, no Feb 29)")
+# ---- 4a. Function: create an empty NetCDF file with the layout from 1b ---------
+# dim3: dim_time or dim_doy; var_atts / glob_atts: extra attributes (named lists)
+create_nc <- function(file, var, units, longname, dim3, chunks = NA,
+                      var_atts = list(), glob_atts = list()) {
   var_lon <- ncvar_def("lon", "degrees_east",  list(dim_E, dim_N), prec = "float",
                        longname = "longitude coordinate", compression = 4)
   var_lat <- ncvar_def("lat", "degrees_north", list(dim_E, dim_N), prec = "float",
                        longname = "latitude coordinate", compression = 4)
   var_crs <- ncvar_def("swiss_lv95_coordinates", "", list(), prec = "integer")
-  var_rsw <- ncvar_def("rsw_cc", "W m-2", list(dim_E, dim_N, dim_doy),
-                       missval = -999.99, prec = "float",
-                       longname = "Daily potential shortwave radiation on a flat surface (Rsw-cc)",
-                       compression = 4)
+  var_out <- ncvar_def(var, units, list(dim_E, dim_N, dim3), missval = fill,
+                       prec = "float", longname = longname,
+                       chunksizes = chunks, compression = 4)
 
-  nc_out <- nc_create(rsw_file, list(var_lon, var_lat, var_crs, var_rsw), force_v4 = TRUE)
-  ncvar_put(nc_out, "lon", ncvar_get(nc_in, "lon"))
-  ncvar_put(nc_out, "lat", ncvar_get(nc_in, "lat"))
-  ncvar_put(nc_out, "rsw_cc", arr)
-  for (v in c("lon", "lat", "swiss_lv95_coordinates", "E", "N")) {
-    att <- ncatt_get(nc_in, v)
-    for (a in setdiff(names(att), c("units", "_FillValue", "missing_value")))
-      ncatt_put(nc_out, v, a, att[[a]])
+  nc <- nc_create(file, list(var_lon, var_lat, var_crs, var_out), force_v4 = TRUE)
+  ncvar_put(nc, "lon", lon)
+  ncvar_put(nc, "lat", lat)
+
+  ncatt_put(nc, "E", "standard_name", "projection_x_coordinate"); ncatt_put(nc, "E", "axis", "X")
+  ncatt_put(nc, "N", "standard_name", "projection_y_coordinate"); ncatt_put(nc, "N", "axis", "Y")
+  if (dim3$name == "time") {
+    ncatt_put(nc, "time", "standard_name", "time"); ncatt_put(nc, "time", "axis", "T")
   }
-  ncatt_put(nc_out, "rsw_cc", "grid_mapping", "swiss_lv95_coordinates")
-  ncatt_put(nc_out, "rsw_cc", "coordinates",  "lat lon")
-  ncatt_put(nc_out, "rsw_cc", "method",
-            "meteoland::radiation_potentialRadiation, slope 0, aspect 0, latitude of each cell (as R/calc_rsw-cc.R)")
-  ncatt_put(nc_out, 0, "title", "Daily potential shortwave radiation (Rsw-cc) on the CH2025 1 km grid")
-  ncatt_put(nc_out, 0, "source", "analysis/04_simulate_Rn.R")
-  ncatt_put(nc_out, 0, "creation_date", format(Sys.Date()))
-  nc_close(nc_out); nc_close(nc_in)
+  ncatt_put(nc, "lon", "standard_name", "longitude")
+  ncatt_put(nc, "lat", "standard_name", "latitude")
+  for (a in names(crs_atts)) ncatt_put(nc, "swiss_lv95_coordinates", a, crs_atts[[a]])
+
+  ncatt_put(nc, var, "grid_mapping", "swiss_lv95_coordinates")
+  ncatt_put(nc, var, "coordinates",  "lat lon")
+  for (a in names(var_atts)) ncatt_put(nc, var, a, var_atts[[a]])
+
+  ncatt_put(nc, 0, "Conventions",   "CF-1.8")
+  ncatt_put(nc, 0, "spatial",       "regular 1km grid")
+  ncatt_put(nc, 0, "source",        "analysis/04_simulate_Rn.R")
+  ncatt_put(nc, 0, "creation_date", format(Sys.Date()))
+  for (a in names(glob_atts)) ncatt_put(nc, 0, a, glob_atts[[a]])
+  nc_close(nc)
+}
+
+# ---- 4b. Save gridded Rsw-cc (365 days, identical for every year) -------------------
+if (!file.exists(rsw_file)) {
+  land     <- which(!is.na(values(r_tasmin[[1]])[, 1]))       # cells with data (Switzerland)
+  rsw_grid <- matrix(NA_real_, nrow = ncell(r_tasmin), ncol = 365)
+  rsw_grid[land, ] <- t(vapply(lat_vals[land], calc_rsw_cc, numeric(365)))
+
+  arr <- array(rsw_grid, dim = c(length(E_vals), length(N_vals), 365))  # E x rows (north first) x doy
+  arr <- arr[, length(N_vals):1, ]                                       # the file runs south to north
+  arr[is.na(arr)] <- fill
+
+  create_nc(rsw_file, "rsw_cc", "W m-2",
+            "Daily potential shortwave radiation on a flat surface (Rsw-cc)", dim_doy,
+            var_atts  = list(method = "meteoland::radiation_potentialRadiation, slope 0, aspect 0, latitude of each cell (as R/calc_rsw-cc.R)"),
+            glob_atts = list(title = "Daily potential shortwave radiation (Rsw-cc) on the CH2025 1 km grid"))
+  nc <- nc_open(rsw_file, write = TRUE)
+  ncvar_put(nc, "rsw_cc", arr)
+  nc_close(nc)
 }
 
 # ---- 5. Two-step prediction for one block of rows ---------------------------
@@ -143,59 +192,21 @@ process_block <- function(s) {
   rn_blk
 }
 
-# ---- 6. Create the NetCDF file (structure of the CH2025 grid files) -----------
-nc_in <- nc_open(nc_path("tasmin"))
-
-dim_E    <- ncdim_def("E", "meters", nc_in$dim$E$vals)
-dim_N    <- ncdim_def("N", "meters", nc_in$dim$N$vals)
-dim_time <- ncdim_def("time", nc_in$dim$time$units, nc_in$dim$time$vals,
-                      unlim = TRUE, calendar = ncatt_get(nc_in, "time", "calendar")$value)
-
-fill <- -999.99                                   # same fill value as CH2025
-
-var_lon <- ncvar_def("lon", "degrees_east",  list(dim_E, dim_N), prec = "float",
-                     longname = "longitude coordinate", compression = 4)
-var_lat <- ncvar_def("lat", "degrees_north", list(dim_E, dim_N), prec = "float",
-                     longname = "latitude coordinate", compression = 4)
-var_crs <- ncvar_def("swiss_lv95_coordinates", "", list(), prec = "integer")
-var_rn  <- ncvar_def("rn", "W m-2", list(dim_E, dim_N, dim_time),
-                     missval = fill, prec = "float",
-                     longname = "Daily mean net radiation",
-                     chunksizes = c(370, block_rows, 365),  # one chunk = one block of rows x one year
-                     compression = 4)
-
-nc_out <- nc_create(out_file, list(var_lon, var_lat, var_crs, var_rn), force_v4 = TRUE)
-
-# coordinates and projection copied from the input
-ncvar_put(nc_out, "lon", ncvar_get(nc_in, "lon"))
-ncvar_put(nc_out, "lat", ncvar_get(nc_in, "lat"))
-for (v in c("lon", "lat", "swiss_lv95_coordinates", "E", "N", "time")) {
-  att <- ncatt_get(nc_in, v)
-  for (a in setdiff(names(att), c("units", "_FillValue", "missing_value", "calendar")))
-    ncatt_put(nc_out, v, a, att[[a]])
-}
-
-# attributes of the Rn variable
-ncatt_put(nc_out, "rn", "standard_name", "surface_net_downward_radiative_flux")
-ncatt_put(nc_out, "rn", "grid_mapping",  "swiss_lv95_coordinates")
-ncatt_put(nc_out, "rn", "coordinates",   "lat lon")
-ncatt_put(nc_out, "rn", "method",
-          "Two-step random forest: Rg ~ Tmin + Tmax + Prec + Rsw-cc + elevation (CH2025 DAILY_LOCAL), Rn ~ Rg + Tmin + Tmax + Prec + Rsw-cc (SwissMetNet ALT, MAG, PAY, TAE)")
-
-# global attributes copied from the input, title and source adjusted
-glob <- ncatt_get(nc_in, 0)
-for (a in c("Conventions", "GWL", "frequency", "qm_calibration_period", "spatial",
-            "modelchain", "CORDEX_domain", "license"))
-  ncatt_put(nc_out, 0, a, glob[[a]])
-ncatt_put(nc_out, 0, "title", "Daily net radiation simulated from Climate CH2025 DAILY-GRIDDED")
-ncatt_put(nc_out, 0, "source", "analysis/04_simulate_Rn.R, input: Climate CH2025 DAILY-GRIDDED (tasmin, tasmax, pr)")
-ncatt_put(nc_out, 0, "creation_date", format(Sys.Date()))
-
-nc_close(nc_out); nc_close(nc_in)
+# ---- 6. Create the Rn NetCDF file ------------------------------------------------
+create_nc(out_file, "rn", "W m-2", "Daily mean net radiation", dim_time,
+          chunks   = c(length(E_vals), block_rows, 365),   # one chunk = one block of rows x one year
+          var_atts = list(standard_name = "surface_net_downward_radiative_flux",
+                          method = "Two-step random forest: Rg ~ Tmin + Tmax + Prec + Rsw-cc + elevation (CH2025 DAILY_LOCAL), Rn ~ Rg + Tmin + Tmax + Prec + Rsw-cc (SwissMetNet ALT, MAG, PAY, TAE)"),
+          glob_atts = list(title                 = "Daily net radiation simulated from Climate CH2025 DAILY-GRIDDED (tasmin, tasmax, pr)",
+                           GWL                   = toupper(period),
+                           modelchain            = toupper(model),
+                           frequency             = "day",
+                           qm_calibration_period = "1991-2020",
+                           CORDEX_domain         = "EUR11"))
 
 # ---- 7. Write one block into the NetCDF file ----------------------------------
 write_block <- function(file, rn_blk, s) {
-  ncols <- ncol(r_tasmin)
+  ncols <- length(E_vals)
   n     <- nrow(rn_blk) / ncols                    # rows in this block
 
   arr <- array(rn_blk, dim = c(ncols, n, n_days))  # E x rows (north first) x time
@@ -204,7 +215,7 @@ write_block <- function(file, rn_blk, s) {
 
   nc <- nc_open(file, write = TRUE)
   ncvar_put(nc, "rn", arr,
-            start = c(1, nrow(r_tasmin) - (s + n - 1) + 1, 1),
+            start = c(1, length(N_vals) - (s + n - 1) + 1, 1),
             count = c(ncols, n, n_days))
   nc_close(nc)
 }
