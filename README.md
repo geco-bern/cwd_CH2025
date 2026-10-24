@@ -1,4 +1,4 @@
-# Drought projections for Switzerland
+# Drought projections for Switzerland (Work in Progress)
 
 Evaluating the CH2025 climate projections for changes in drought across Switzerland, quantified using the potential cumulative water deficit (PCWD). PCWD is the cumulative difference between potential evapotranspiration (PET) and the liquid water reaching the soil (Helpap et al., 2026). PET is calculated from net radiation following Priestley & Taylor (1972) as implemented by Davis et al. (2017). Because CH2025 provides no radiation on its 1 km grid, net radiation is modelled from the gridded temperature and precipitation. The thesis will compare drought frequency and magnitude across the global warming levels (GWL) 1.5, 2.0, 2.5 and 3.0 °C and aggregate the results to the biogeographic regions of Switzerland.
 
