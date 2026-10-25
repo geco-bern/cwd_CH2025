@@ -1,5 +1,5 @@
 ---
-title: "Drought projections for Switzerland - Thesis Proposal"
+title: "Drought projections for Switzerland - Thesis Proposal (Outdated)"
 author: "Thomas Jucker"
 date: "18 October 2026"
 bibliography: references.bib  
@@ -142,18 +142,18 @@ tl <- tribble(
   ~task,                                          ~start,       ~end,         ~type,
   "Drafting proposal",                            "2026-09-26", "2026-10-18", "Phase",
   "Interim meeting",                              "2026-10-08", NA,           "Milestone",
-  "Evaluation proposal",                          "2026-10-19", "2026-10-20", "Phase",
+  "Evaluation proposal",                          "2026-10-19", "2026-10-20", "Tutor",
   "Discussion proposal",                          "2026-10-20", NA,           "Milestone",
-  "Data preparation",                          "2026-10-21", "2026-11-01", "Phase",
-  "PCWD calculation",                             "2026-11-02", "2026-11-08", "Phase",
+  "Creating Radiation Model",                     "2026-10-21", "2026-11-01", "Phase",
+  "PCWD calculation subset",                      "2026-11-02", "2026-11-08", "Phase",
   "Visualisation",                                "2026-11-09", "2026-11-22", "Phase",
-  "Ubelix first try",                             "2026-11-23", "2026-12-04", "Phase",
-  "Ubelix second try",                            "2026-12-05", "2026-12-09", "Phase",
+  "Ubelix computation full dataset (first try)",  "2026-11-23", "2026-12-04", "Phase",
+  "Ubelix computation full dataset (second try)", "2026-12-05", "2026-12-09", "Phase",
   "Analyse results",                              "2026-12-10", "2026-12-16", "Phase",
   "Report writing",                               "2026-12-17", "2026-12-26", "Phase",
   "Buffer",                                       "2026-12-27", "2027-01-02", "Phase",
   "Submit draft full paper",                      "2027-01-03", NA,           "Milestone",
-  "Evaluation draft full paper",                  "2027-01-04", "2027-01-14", "Phase",
+  "Evaluation draft full paper",                  "2027-01-04", "2027-01-14", "Tutor",
   "Discussion draft full paper",                  "2027-01-15", NA,           "Milestone",
   "Implementing feedback",                        "2027-01-16", "2027-01-28", "Phase",
   "Presentation to GECO group",                   "2027-01-25", NA,           "Milestone",
@@ -165,13 +165,15 @@ tl <- tribble(
          end   = as.Date(end) + 1,          # include the last day in the bar
          task  = fct_rev(fct_inorder(task)))
 
-ggplot(tl, aes(y = task, colour = type)) +
-  geom_segment(data = filter(tl, type == "Phase"),
+p_timeline <- ggplot(tl, aes(y = task, colour = type)) +
+  geom_segment(data = filter(tl, type %in% c("Phase", "Tutor")),   # Tutor = phase done by the tutor
                aes(x = start, xend = end, yend = task),
                linewidth = 5) +
   geom_point(data = filter(tl, type == "Milestone"),
              aes(x = start), shape = 18, size = 4.5) +
-  scale_colour_manual(values = c(Phase = "#2c7fb8", Milestone = "firebrick"),
+  scale_colour_manual(values = c(Phase = "#2c7fb8", Tutor = "#e69f00", Milestone = "firebrick"),
+                      breaks = c("Phase", "Tutor", "Milestone"),
+                      labels = c(Phase = "Phase", Tutor = "Phase (tutor)", Milestone = "Milestone"),
                       name = NULL) +
   scale_x_date(date_breaks = "1 week", date_labels = "%d %b",
              expand = expansion(add = 3),
@@ -185,6 +187,12 @@ ggplot(tl, aes(y = task, colour = type)) +
       axis.text.x.bottom = element_text(angle = 45, hjust = 1),
       axis.text.x.top    = element_text(angle = 45, hjust = 0),
       legend.position = "top")
+
+p_timeline
+
+# also write the timeline to figures/ (here() finds the project root when knitting from vignettes/)
+ggsave(here::here("figures", "timeline.jpg"), p_timeline,
+       width = 9, height = 6.5, dpi = 300, bg = "white")
 ```
 
 ## Bibliography
