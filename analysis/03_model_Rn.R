@@ -1,6 +1,6 @@
 # run calc_rsw-cc.R first to create the rsw-cc files in data/rsw-cc
 
-# three step approach: first train a random forest on the CH2025 daily local data, then use the trained model to predict net radiation on four swissmetnet stations
+# two step approach: first train a random forest on the CH2025 daily local data then use the trained model to predict net radiation on four swissmetnet stations
 
 # Step 1: Train a random forest on the CH2025 daily local data
 

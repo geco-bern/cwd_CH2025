@@ -1,4 +1,3 @@
-# ------------------------------------------------------------------
 # Download Climate CH2025 files (DAILY-LOCAL or DAILY-GRIDDED) via the STAC API
 #
 # R version of the official MeteoSwiss script download_ch2025_interactive.sh.
@@ -10,7 +9,7 @@
 #      the SHA256 checksum
 #
 # WARNING: gridded files are about 2 GB each.
-# ------------------------------------------------------------------
+
 
 library(here)
 library(jsonlite)

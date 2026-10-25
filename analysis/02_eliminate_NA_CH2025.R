@@ -1,4 +1,3 @@
-# ------------------------------------------------------------------
 # Fill missing values (NA / empty cells) in the DAILY-GRIDDED CH2025 files
 #
 # For every selected file the script
@@ -13,7 +12,7 @@
 #
 # NOTE: the .nc files are changed in place. A second run finds nothing to
 # fill and reports 0 for those files.
-# ------------------------------------------------------------------
+
 
 library(here)
 library(ncdf4)
