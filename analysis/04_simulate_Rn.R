@@ -12,7 +12,7 @@ source(here("R", "nc_grid_ch.R"))                 # grid layout, create_nc(), wr
 # ---- 1. Settings ----------------------------------------------------------
 dir_grid   <- here("data-raw", "CH2025", "DAILY_GRIDDED")
 model      <- "clmcom-cclm4-cccma"
-period     <- "gwl1.5"
+period     <- "ref91-20"
 block_rows <- 10                 # rows of the grid processed at once
 n_threads  <- max(1, parallel::detectCores() - 1)
 
