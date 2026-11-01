@@ -16,7 +16,7 @@ source(here("R", "nc_grid_ch.R"))                 # grid layout, create_nc(), wr
 # ---- 1. Settings ----------------------------------------------------------
 dir_grid   <- here("data-raw", "CH2025", "DAILY_GRIDDED")
 model      <- "clmcom-cclm4-cccma"
-period     <- "ref91-20"
+period     <- "gwl1.5"
 temp_snow  <- 0                  # deg C: precipitation below this falls as snow (as cwd_global)
 thresh_reset <- 50               # mm: deficit reset this far below the event peak
 block_rows <- 10                 # rows of the grid processed at once

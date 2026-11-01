@@ -60,8 +60,8 @@ lon      <- ncvar_get(nc_ll, "lon")               # E x N, for the output file
 lat      <- ncvar_get(nc_ll, "lat")
 nc_close(nc_ll)
 
-# Dates: CH2025 years 1-30 = assumed 2025-2054 (365-day calendar)
-dates <- seq(as.Date("2025-01-01"), as.Date("2054-12-31"), by = "day")
+# Dates: CH2025 placeholder years 0001-0030 (365-day calendar, no Feb 29)
+dates <- seq(as.Date("0001-01-01"), as.Date("0030-12-31"), by = "day")
 dates <- dates[format(dates, "%m-%d") != "02-29"]
 stopifnot(length(dates) == n_days)
 
