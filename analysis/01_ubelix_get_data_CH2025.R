@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-#SBATCH --job-name=get_CH2025
+#SBATCH --job-name=get_data_CH2025
 #SBATCH --time=96:00:00
 #SBATCH --mem=2G
 #SBATCH --output=get_CH2025_%j.log
