@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 #SBATCH --job-name=pcwd_maxlen
+#SBATCH --account=invest
+#SBATCH --qos=job_icpu-stocker
+#SBATCH --partition=cpu-invest
 #SBATCH --array=1-128%32
 #SBATCH --time=00:30:00
 #SBATCH --cpus-per-task=1

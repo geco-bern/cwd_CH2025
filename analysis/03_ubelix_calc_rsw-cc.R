@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 #SBATCH --job-name=calc_rsw-cc
+#SBATCH --account=invest
+#SBATCH --qos=job_icpu-stocker
+#SBATCH --partition=cpu-invest
 #SBATCH --time=04:00:00
 #SBATCH --mem=8G
 #SBATCH --output=calc_rsw-cc_%j.log

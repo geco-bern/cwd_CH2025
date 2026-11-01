@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 #SBATCH --job-name=eliminate_NA_CH2025
+#SBATCH --account=invest
+#SBATCH --qos=job_icpu-stocker
+#SBATCH --partition=cpu-invest
 #SBATCH --time=96:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=4G

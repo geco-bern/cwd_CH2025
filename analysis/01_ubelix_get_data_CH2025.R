@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 #SBATCH --job-name=get_data_CH2025
+#SBATCH --account=invest
+#SBATCH --qos=job_icpu-stocker
+#SBATCH --partition=cpu-invest
 #SBATCH --time=96:00:00
 #SBATCH --mem=2G
 #SBATCH --output=get_CH2025_%j.log

@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 #SBATCH --job-name=simulate_Rn
+#SBATCH --account=invest
+#SBATCH --qos=job_icpu-stocker
+#SBATCH --partition=cpu-invest
 #SBATCH --array=1-128%16
 #SBATCH --time=24:00:00
 #SBATCH --cpus-per-task=8
