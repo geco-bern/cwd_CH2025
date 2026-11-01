@@ -71,7 +71,7 @@ p <- ggplot(d, aes(doy, pcwd, colour = series)) +
   guides(colour = guide_legend(override.aes = list(linewidth = rep(c(0.6, 1.2), nrow(periods))))) +
   labs(title    = sprintf("Daily PCWD at %s, %s, %s", site, toupper(model),
                           paste(periods$label, collapse = " and ")),
-       subtitle = sprintf("Grid cell E %d / N %d (LV95), all 30 years of each period and their mean per day of year, deficit reset on 1 January",
+       subtitle = sprintf("Grid cell E %d / N %d (LV95), all 30 years of each period and their mean per day of year, deficit reset 50 mm below the event peak",
                           E_vals[iE], N_vals[iN]),
        x = NULL, y = "PCWD (mm)") +
   theme_minimal(base_size = 11) +
