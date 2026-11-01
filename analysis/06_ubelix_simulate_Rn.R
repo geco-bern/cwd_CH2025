@@ -14,7 +14,7 @@ library(here)
 library(terra)
 library(ncdf4)
 library(ranger)
-source(here("R", "nc_grid_ch.R"))                 # grid layout, create_nc(), write_block()
+source(here("R", "nc_grid_ch.R"))                
 
 # Settings
 in_dir   <- here("data-raw", "CH2025", "DAILY_GRIDDED")
@@ -39,7 +39,7 @@ if (file.exists(out_file)) {
 }
 
 nc_path <- function(var)
-  file.path(dir_grid, sprintf("ogd-climate-scenarios-ch2025-grid_ch_%s_%s_%s.nc",
+  file.path(in_dir, sprintf("ogd-climate-scenarios-ch2025-grid_ch_%s_%s_%s.nc",
                               var, model, period))
 
 # Inputs: climate grids, Rsw-cc, elevation, models
