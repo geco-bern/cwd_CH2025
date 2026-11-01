@@ -6,20 +6,21 @@
 
 # Download Climate CH2025 files via the STAC API into <working directory>/data-raw/CH2025/
 # DAILY_GRIDDED/ all netCDF files
-# DAILY-LOCAL/   all csv files of relevant stations to model radiation
+# DAILY_LOCAL/   all csv files of relevant stations to model radiation
 # Files already on disk are skipped
 
 library(jsonlite)
 options(timeout = 7200)     # seconds allowed per download (large files)
 
-stations <- tolower(c(
-  "ABO", "AIG", "ALT", "BAS", "BER", "BUS", "CDF", "CGI", "CHA", "CHU",
-  "CIM", "COM", "COV", "DAV", "DIS", "DOL", "ENG", "EVO", "FAH", "FRE",
-  "GLA", "GRH", "GSB", "GUE", "GUT", "GVE", "INT", "KLO", "LUG", "LUZ",
-  "MAG", "MLS", "MVE", "NAP", "NEU", "OTL", "PAY", "PIL", "PIO", "PLF",
-  "PUY", "REH", "ROB", "ROE", "RUE", "SAE", "SAM", "SBO", "SCU", "SHA",
-  "SIO", "SMA", "STG", "TAE", "ULR", "VAD", "VIS", "WAE", "WFJ", "WYN", "ZER"
-))
+stations <- c(
+  "abo", "aig", "alt", "bas", "ber", "bus", "cdf", "cgi", "cha", "chu",
+  "cim", "com", "cov", "dav", "dis", "dol", "eng", "evo", "fah", "fre",
+  "gla", "grh", "gsb", "gue", "gut", "gve", "int", "klo", "lug", "luz",
+  "mag", "mls", "mve", "nap", "neu", "otl", "pay", "pil", "pio", "plf",
+  "puy", "reh", "rob", "roe", "rue", "sae", "sam", "sbe", "sbo", "scu", "sha",
+  "sio", "sma", "stg", "tae", "ulr", "vad", "vis", "wae", "wfj", "wyn", 
+  "zer"
+)
 
 # all file urls of a collection (the listing is split into pages)
 list_urls <- function(collection) {
@@ -58,9 +59,10 @@ download_all <- function(urls, dir) {
 gridded <- grep("\\.nc$", list_urls("ogd-climate-scenarios-ch2025-grid"), value = TRUE)
 local   <- grep(paste0("ch2025_(", paste(stations, collapse = "|"), ")_.*\\.csv$"),
                 list_urls("ogd-climate-scenarios-ch2025"), value = TRUE)
+meta    <- "https://rgw.cscs.ch/mchogd:cscs.meteoswiss.ogd.climate/ogd-climate-scenarios-ch2025/ogd-climate-scenarios-ch2025_meta_stations.csv"
 
 failed <- c(download_all(gridded, file.path("data-raw", "CH2025", "DAILY_GRIDDED")),
-            download_all(local,   file.path("data-raw", "CH2025", "DAILY-LOCAL")))
+            download_all(c(local, meta), file.path("data-raw", "CH2025", "DAILY_LOCAL")))
 
 if (length(failed) > 0) stop(length(failed), " failed, resubmit:\n", paste(failed, collapse = "\n"))
 message("Done.")
