@@ -5,8 +5,6 @@
 #SBATCH --mem-per-cpu=2G
 #SBATCH --output=model_Rn_%j.log
 
-# run analysis/03_ubelix_calc_rsw-cc.R first to create the rsw-cc files in data/rsw-cc
-
 # two step approach: first train a random forest on the CH2025 daily local data then use the trained model to predict net radiation on four swissmetnet stations
 
 # Step 1: Train a random forest on the CH2025 daily local data
