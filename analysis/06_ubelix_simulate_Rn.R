@@ -17,12 +17,12 @@ library(ranger)
 source(here("R", "nc_grid_ch.R"))                 # grid layout, create_nc(), write_block()
 
 # Settings
-dir_grid   <- here("data-raw", "CH2025", "DAILY_GRIDDED")
+in_dir   <- here("data-raw", "CH2025", "DAILY_GRIDDED")
 block_rows <- 10                 # rows of the grid processed at once
 n_threads  <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
 
 # model chain and period of this array task, taken from the file names
-parts  <- strsplit(sub("\\.nc$", "", list.files(dir_grid, pattern = "_tasmin_.*\\.nc$")), "_")
+parts  <- strsplit(sub("\\.nc$", "", list.files(in_dir, pattern = "_tasmin_.*\\.nc$")), "_")
 task   <- parts[[as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))]]
 model  <- task[4]
 period <- task[5]
