@@ -8,7 +8,7 @@
 # Fill missing values in all DAILY_GRIDDED files with monthly means
 # Cells that are NA on every day (outside Switzerland) are ignored.
 # Original netCDF files are overwritten.
-# Report: tables/qc_na_filled_gridded.csv
+# Report stored under tables/qc_na_filled_gridded.csv
 
 library(ncdf4)
 library(parallel)
