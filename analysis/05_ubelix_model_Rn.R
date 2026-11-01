@@ -39,11 +39,16 @@ read_ch2025 <- function(path) {
   out
 }
 
-# Reader for the Rsw-cc csv of one station
+# Reader for the Rsw-cc csv of one station (one row per day of year)
 read_rsw <- function(s) {
   x <- read.csv(file.path(dir_in_rsw, paste0("meteoland_", tolower(s), "_rswcc.csv")))
-  data.frame(station = s, date = as.Date(x$date), doy = x$doy, rsw_cc = x$rsw_cc)
+  stopifnot(nrow(x) == 365)
+  data.frame(station = s, doy = x$doy, rsw_cc = x$rsw_cc)
 }
+
+# day of year on the 365_day calendar (Feb 29 takes Feb 28)
+md_365  <- format(seq(as.Date("2025-01-01"), by = "day", length.out = 365), "%m-%d")
+doy_365 <- function(date) match(sub("02-29", "02-28", format(date, "%m-%d")), md_365)
 
 # File inventory
 files <- list.files(dir_in_local, recursive = TRUE, full.names = TRUE,
@@ -82,7 +87,8 @@ train <- train[train$station %in% unique(inv$station), ]
 
 # Join Rsw-cc
 rsw   <- bind_rows(lapply(unique(train$station), read_rsw))
-train <- left_join(train, rsw, by = c("station", "date"))
+train$doy <- doy_365(train$date)
+train <- left_join(train, rsw, by = c("station", "doy"))
 stopifnot(!anyNA(train$rsw_cc))
 
 # Random forest; min = 0 clips Rg predictions (Rn can be negative)
@@ -170,13 +176,9 @@ smn <- bind_rows(lapply(smn_stations, read_smn))
 smn <- smn[complete.cases(smn), ]
 smn$pr_t <- log1p(smn$pr)
 
-# Step 2.4: Join Rsw-cc by day of year (rsw-cc files cover doy 1-365, so Feb 29 takes Feb 28)
-rsw_doy <- bind_rows(lapply(smn_stations, read_rsw)) |>
-  group_by(station, doy) |> summarise(rsw_cc = mean(rsw_cc), .groups = "drop")
-doy  <- as.integer(format(smn$date, "%j"))
-leap <- as.integer(format(as.Date(format(smn$date, "%Y-12-31")), "%j")) == 366
-smn$doy <- doy - (leap & doy > 59)
-smn <- left_join(smn, rsw_doy, by = c("station", "doy"))
+# Step 2.4: Join Rsw-cc by day of year
+smn$doy <- doy_365(smn$date)
+smn <- left_join(smn, rsw, by = c("station", "doy"))
 stopifnot(!anyNA(smn$rsw_cc))
 
 # Step 2.5: Simulate Rg with the step 1 model (and check it against observed Rg)
