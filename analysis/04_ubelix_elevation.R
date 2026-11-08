@@ -53,15 +53,17 @@ print(global(dem, c("min", "max", "mean"), na.rm = TRUE))  # expect ~200-4500 m
 writeRaster(dem, out_file, overwrite = TRUE)
 
 # Quality check: cells with climate data (first layer of a climate file) but no elevation
-mismatch <- !is.na(rast(pr_file, lyrs = 1)) & is.na(dem)
+ok_pr    <- !is.na(rast(pr_file, lyrs = 1))
+mismatch <- ok_pr & is.na(dem)
 write.csv(data.frame(n_cells = global(mismatch, "sum")$sum), csv_file, row.names = FALSE)
 
-# Save mismatch map
-cols <- c("lightgreen", "firebrick")
+# Save coverage map: 1 = elevation only, 2 = climate data and elevation, 3 = climate data, no elevation
+cover <- ifel(mismatch, 3, ifel(ok_pr, 2, ifel(is.na(dem), NA, 1)))
+cols  <- c("grey80", "lightgreen", "firebrick")
 
-jpeg(fig_file, width = 1800, height = 1300, res = 200, type = "cairo") 
-plot(mismatch, main = "Grid cells with climate data but no elevation (CH2025, 1 km grid)",
-     col = cols, legend = FALSE)
-legend("bottomright", fill = cols, bty = "n",
-       legend = c("Climate data and elevation available", "Climate data, no elevation"))
+jpeg(fig_file, width = 1800, height = 1300, res = 200, type = "cairo")
+plot(cover, main = "Climate data vs. elevation coverage (CH2025, 1 km grid)",
+     type = "classes", col = cols, legend = FALSE)
+legend("topleft", inset = 0.02, fill = cols, bty = "n",
+       legend = c("Elevation only", "Climate data and elevation", "Climate data, no elevation"))
 dev.off()

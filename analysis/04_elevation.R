@@ -67,18 +67,22 @@ mismatch <- ok_pr & !ok_dem       # climate data but no elevation
 print(global(mismatch, "sum"))
 plot(mismatch)                    # where are they?
 
-# ---- 6. Save mismatch map ----------------------------------------
-cols <- c("lightgreen", "firebrick")
+# ---- 6. Save coverage map ----------------------------------------
+# 1 = elevation only, 2 = climate data and elevation, 3 = climate data, no elevation
+cover <- ifel(mismatch, 3, ifel(ok_pr, 2, ifel(ok_dem, 1, NA)))
+cols  <- c("grey80", "lightgreen", "firebrick")
 
 jpeg(fig_file, width = 1800, height = 1300, res = 200)
-plot(mismatch,
-     main   = "Grid cells with climate data but no elevation (CH2025, 1 km grid)",
+plot(cover,
+     main   = "Climate data vs. elevation coverage (CH2025, 1 km grid)",
+     type   = "classes",
      col    = cols,
      legend = FALSE)
-legend("bottomright",
-       legend = c("Climate data and elevation available",
+legend("topleft",
+       legend = c("Elevation only",
+                  "Climate data and elevation",
                   "Climate data, no elevation"),
-       fill = cols, bty = "n")
+       fill = cols, bty = "n", inset = 0.02)
 dev.off()
 
 # ---- 7. Save elevation --------------------------------------------
