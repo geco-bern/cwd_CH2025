@@ -21,6 +21,7 @@ library(here)
 library(terra)
 library(ncdf4)
 library(parallel)
+library(cwd)
 source(here("R", "nc_grid_ch.R"))                 
 
 # Settings

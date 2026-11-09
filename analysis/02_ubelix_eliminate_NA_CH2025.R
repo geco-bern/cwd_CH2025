@@ -16,7 +16,7 @@
 library(ncdf4)
 library(parallel)
 
-dir_in  <- file.path("data-raw", "CH2025", "DAILY_GRIDDED")
+dir_inout  <- file.path("data-raw", "CH2025", "DAILY_GRIDDED")
 dir_qc  <- file.path("tables", "qc_na_filled_gridded")     
 out_csv <- file.path("tables", "qc_na_filled_gridded.csv")
 dir.create(dir_qc, showWarnings = FALSE, recursive = TRUE)
@@ -112,7 +112,7 @@ fill_file <- function(path) {
             qc_file(path), row.names = FALSE)
 }
 
-files <- list.files(dir_in, pattern = "\\.nc$", full.names = TRUE)
+files <- list.files(dir_inout, pattern = "\\.nc$", full.names = TRUE)
 todo  <- files[!file.exists(qc_file(files))]
 message(length(todo), " of ", length(files), " files to process")
 

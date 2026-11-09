@@ -3,6 +3,10 @@
 .RData
 .Ruserdata
 
+
+# unneeded logs of SLURM scripts
+*.log
+
 # large climate data (download separately)
 data-raw/
 data/*

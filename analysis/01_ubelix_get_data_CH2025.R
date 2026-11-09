@@ -4,7 +4,8 @@
 #SBATCH --qos=job_icpu-stocker
 #SBATCH --partition=cpu-invest
 #SBATCH --time=96:00:00
-#SBATCH --mem=2G
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=6G
 #SBATCH --output=get_CH2025_%j.log
 
 # Download Climate CH2025 files via the STAC API into <working directory>/data-raw/CH2025/
