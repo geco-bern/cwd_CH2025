@@ -14,9 +14,9 @@ Contains data and code for creating:
 - Daily simulated net radiation on the CH2025 grid. Outputs are stored in `data/netradiation_sim/`.
 - Daily PCWD and annual maximum PCWD for every grid cell. Outputs are stored in `data/pcwd/` and `data/pcwd_annmax/`.
 
-The full workflow is reproduced by running the scripts in this order:
+The full workflow is reproduced by running the scripts in this order on UBELIX:
 
-1. `analysis/01_get_data_CH2025.R` downloads the CH2025 DAILY-LOCAL and DAILY-GRIDDED files from the MeteoSwiss STAC API.
+1. `sbatch analysis/01_get_data_CH2025.R` downloads the CH2025 DAILY-LOCAL and DAILY-GRIDDED files from the MeteoSwiss STAC API.
 2. `analysis/02_eliminate_NA_CH2025.R` fills missing values in the gridded files with the monthly mean of the same cell.
 3. `R/elevation.R` resamples DHM25 to the CH2025 1 km grid.
 4. `R/calc_rsw-cc.R` calculates Rsw-cc for the stations and the grid with meteoland.
