@@ -116,7 +116,7 @@ saveRDS(list(model = rg_fit, predictors = x_vars), file.path(dir_model, "rg_mode
 cv <- bind_rows(lapply(sort(unique(train$station)), function(st) {
   message("CV: ", st)
   trn <- train[train$station != st, ]; tst <- train[train$station == st, ]
-  data.frame(tst[c("station", "elev", "rsds")], pred = predict_rf(fit_rf(trn, fml), tst, min = 0))
+  data.frame(tst[c("station", "elev", "chain", "rsds")], pred = predict_rf(fit_rf(trn, fml), tst, min = 0))
 }))
 cv$band <- cut(cv$elev, c(0, 500, 1000, 1500, 2000, Inf),
                labels = c("<500", "500-1000", "1000-1500", "1500-2000", ">2000"))
@@ -125,6 +125,11 @@ by_station <- cv |> group_by(station, elev) |> summ(rsds)
 write.csv(cv |> summ(rsds),                  here("tables", "rg_cv_overall.csv"),   row.names = FALSE)
 write.csv(by_station,                        here("tables", "rg_cv_station.csv"),   row.names = FALSE)
 write.csv(cv |> group_by(band) |> summ(rsds), here("tables", "rg_cv_elevation.csv"), row.names = FALSE)
+
+# Errors per model chain: a systematic bias of a chain hints that one pooled model does not fit all chains
+by_chain_station <- cv |> group_by(chain, station) |> summ(rsds)
+write.csv(cv |> group_by(chain) |> summ(rsds), here("tables", "rg_cv_chain.csv"),         row.names = FALSE)
+write.csv(by_chain_station,                    here("tables", "rg_cv_chain_station.csv"), row.names = FALSE)
 
 # Figures
 ggsave(here("figures", "rg_cv_obs_vs_pred.jpg"),
@@ -136,6 +141,11 @@ ggsave(here("figures", "rg_cv_rmse_by_elevation.jpg"),
        ggplot(by_station, aes(elev, RMSE)) + geom_point() +
          labs(x = "Station elevation (m)", y = "RMSE (W m-2)") + theme_bw(),
        width = 6, height = 4, dpi = 200)
+ggsave(here("figures", "rg_cv_bias_by_chain.jpg"),
+       ggplot(by_chain_station, aes(Bias, reorder(chain, Bias, median))) +
+         geom_vline(xintercept = 0, colour = "red") + geom_boxplot(outlier.size = 0.8) +
+         labs(x = "Bias per station (W m-2, predicted - observed)", y = NULL) + theme_bw(),
+       width = 7, height = 0.3 * length(unique(cv$chain)) + 1.5, dpi = 200)
 
 
 # Step 2: Train a random forest for net radiation (Rn) on four SwissMetNet stations that contain necessary variables incoming longwave, outgoing longwave, reflected shortwave, and incoming shortwave.
