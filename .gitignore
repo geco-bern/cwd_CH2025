@@ -7,10 +7,8 @@
 # unneeded logs of SLURM scripts
 *.log
 
-# large climate data (download separately)
+# large climate data (download described in analysis .R files where applicable)
 data-raw/
-data/*
 
-# small derived data that is shared via GitHub
-!data/elevation/
-!data/rsw-cc/
+# large climate data written from analysis scripts
+data/
