@@ -3,7 +3,7 @@
 #SBATCH --account=invest
 #SBATCH --qos=job_icpu-stocker
 #SBATCH --partition=cpu-invest
-#SBATCH --time=08:00:00
+#SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=2G
 #SBATCH --output=model_Rn_%j.log
