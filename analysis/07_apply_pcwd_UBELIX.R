@@ -6,7 +6,7 @@
 #SBATCH --array=1-128%8
 #SBATCH --time=06:00:00
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=32G
+#SBATCH --mem-per-cpu=2G
 #SBATCH --output=apply_pcwd_%A_%a.log
 
 # calculate potential cumulative water deficit (PCWD) on the grid using cwd::cwd() with simulated net radiation (Rn) and air pressure from elevation

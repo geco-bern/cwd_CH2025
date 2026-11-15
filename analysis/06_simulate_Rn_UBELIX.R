@@ -6,7 +6,7 @@
 #SBATCH --array=1-128%16
 #SBATCH --time=24:00:00
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=16G
+#SBATCH --mem-per-cpu=2G
 #SBATCH --output=simulate_Rn_%A_%a.log
 
 # applies the two-step random forest on the CH2025 daily grid:

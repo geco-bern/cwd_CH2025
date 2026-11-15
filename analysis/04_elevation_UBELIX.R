@@ -4,7 +4,7 @@
 #SBATCH --qos=job_icpu-stocker
 #SBATCH --partition=cpu-invest
 #SBATCH --time=01:00:00
-#SBATCH --mem=8G
+#SBATCH --mem-per-cpu=8G
 #SBATCH --output=elevation_%j.log
 
 # Download DHM25 and prepare the elevation (LV03, 200 m) for matching with the CH2025 gridded climate files (LV95, 1 km, NetCDF).

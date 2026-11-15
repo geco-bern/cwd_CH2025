@@ -6,7 +6,7 @@
 #SBATCH --array=1-128%32
 #SBATCH --time=00:30:00
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem-per-cpu=8G
 #SBATCH --output=pcwd_annmax_%A_%a.log
 
 # annual maximum PCWD of every cell on the CH2025 1 km grid, following geco-bern/cwd_global

@@ -4,7 +4,7 @@
 #SBATCH --qos=job_icpu-stocker
 #SBATCH --partition=cpu-invest
 #SBATCH --time=04:00:00
-#SBATCH --mem=8G
+#SBATCH --mem-per-cpu=8G
 #SBATCH --output=calc_rsw-cc_%j.log
 
 ## Calculate daily potential shortwave radiation (Rsw-cc) for the CH2025 stations (1) and grid (2)

@@ -6,7 +6,7 @@
 #SBATCH --array=1-128%32
 #SBATCH --time=00:30:00
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem-per-cpu=8G
 #SBATCH --output=pcwd_maxlen_%A_%a.log
 
 # maximum length of a PCWD event within each year for every cell on the CH2025 1 km grid
