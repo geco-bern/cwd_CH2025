@@ -3,14 +3,15 @@
 #SBATCH --account=invest
 #SBATCH --qos=job_icpu-stocker
 #SBATCH --partition=cpu-invest
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=2G
 #SBATCH --output=model_Rn_%j.log
 
-# two step approach: first train a random forest on the CH2025 daily local data then use the trained model to predict net radiation on four swissmetnet stations
+# two step approach: first train one global radiation (Rg) random forest per model chain on the CH2025 daily local data,
+# then train one net radiation (Rn) random forest on observed Rg at four SwissMetNet stations
 
-# Step 1: Train a random forest on the CH2025 daily local data
+# Step 1: Train one Rg random forest per model chain on the CH2025 daily local data
 
 library(here)
 library(dplyr)
@@ -20,7 +21,7 @@ library(ggplot2)
 dir_in_local <- here("data-raw", "CH2025", "DAILY_LOCAL")
 dir_in_rsw   <- here("data", "rsw-cc")
 vars         <- c("pr", "tasmin", "tasmax", "rsds")
-n_per_group  <- 40
+n_per_group  <- 100            # days per station x period x chain (each chain model sees only its own rows)
 n_trees <- 100; seed <- 1
 n_threads    <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
 x_vars  <- c("pr_t", "tasmin", "tasmax", "rsw_cc", "elev")
@@ -83,8 +84,12 @@ build_training <- function(inv) {
 }
 
 train <- if (file.exists(file_train)) readRDS(file_train)
-if (is.null(train) || !all(unique(inv$station) %in% train$station)) {
-  train <- build_training(inv); saveRDS(train, file_train)
+# rebuilt if stations are missing or n_per_group changed
+if (is.null(train) || !all(unique(inv$station) %in% train$station) ||
+    !identical(attr(train, "n_per_group"), n_per_group)) {
+  train <- build_training(inv)
+  attr(train, "n_per_group") <- n_per_group
+  saveRDS(train, file_train)
 }
 train <- train[train$station %in% unique(inv$station), ]
 
@@ -108,15 +113,24 @@ summ <- function(d, obs) {
             R2 = 1 - sum((pred - {{ obs }})^2) / sum(({{ obs }} - mean({{ obs }}))^2))
 }
 
-# Final random forest on all stations
-rg_fit <- fit_rf(train, fml)
-saveRDS(list(model = rg_fit, predictors = x_vars), file.path(dir_model, "rg_model_rf.rds"))
+# Final random forest per model chain on all stations: rg_model_rf_[chain].rds
+chains  <- sort(unique(train$chain))
+rg_fits <- lapply(setNames(chains, chains), function(ch) {
+  message("Rg model: ", ch)
+  fit <- fit_rf(train[train$chain == ch, ], fml)
+  saveRDS(list(model = fit, predictors = x_vars, chain = ch),
+          file.path(dir_model, paste0("rg_model_rf_", ch, ".rds")))
+  fit
+})
 
-# Leave-one-station-out CV
-cv <- bind_rows(lapply(sort(unique(train$station)), function(st) {
-  message("CV: ", st)
-  trn <- train[train$station != st, ]; tst <- train[train$station == st, ]
-  data.frame(tst[c("station", "elev", "chain", "rsds")], pred = predict_rf(fit_rf(trn, fml), tst, min = 0))
+# Leave-one-station-out CV within each model chain
+cv <- bind_rows(lapply(chains, function(ch) {
+  message("CV: ", ch)
+  d <- train[train$chain == ch, ]
+  bind_rows(lapply(sort(unique(d$station)), function(st) {
+    trn <- d[d$station != st, ]; tst <- d[d$station == st, ]
+    data.frame(tst[c("station", "elev", "chain", "rsds")], pred = predict_rf(fit_rf(trn, fml), tst, min = 0))
+  }))
 }))
 cv$band <- cut(cv$elev, c(0, 500, 1000, 1500, 2000, Inf),
                labels = c("<500", "500-1000", "1000-1500", "1500-2000", ">2000"))
@@ -126,7 +140,7 @@ write.csv(cv |> summ(rsds),                  here("tables", "rg_cv_overall.csv")
 write.csv(by_station,                        here("tables", "rg_cv_station.csv"),   row.names = FALSE)
 write.csv(cv |> group_by(band) |> summ(rsds), here("tables", "rg_cv_elevation.csv"), row.names = FALSE)
 
-# Errors per model chain: a systematic bias of a chain hints that one pooled model does not fit all chains
+# Errors per model chain: with one model per chain, the bias of each chain should be close to zero
 by_chain_station <- cv |> group_by(chain, station) |> summ(rsds)
 write.csv(cv |> group_by(chain) |> summ(rsds), here("tables", "rg_cv_chain.csv"),         row.names = FALSE)
 write.csv(by_chain_station,                    here("tables", "rg_cv_chain_station.csv"), row.names = FALSE)
@@ -149,12 +163,13 @@ ggsave(here("figures", "rg_cv_bias_by_chain.jpg"),
 
 
 # Step 2: Train a random forest for net radiation (Rn) on four SwissMetNet stations that contain necessary variables incoming longwave, outgoing longwave, reflected shortwave, and incoming shortwave.
-# Rn ~ Rg + Tmin + Tmax + Prec + Rsw-cc, with Rg simulated by the step 1 model
+# Rn ~ Rg + Tmin + Tmax + Prec + Rsw-cc, trained with observed Rg: one Rn model for all chains,
+# the chain specific signal enters through the Rg of each chain's step 1 model (06_simulate_Rn_UBELIX.R)
 
 # Step 2.1: Settings
 dir_in_smn   <- here("data-raw", "swissmetnet")
 smn_stations <- c("ALT", "MAG", "PAY", "TAE")   # only stations measuring all four components
-x_vars_rn    <- c("rg_sim", "tasmin", "tasmax", "pr_t", "rsw_cc")
+x_vars_rn    <- c("rg", "tasmin", "tasmax", "pr_t", "rsw_cc")   # rg: observed in training, simulated in 06
 fml_rn       <- reformulate(x_vars_rn, response = "rn")
 
 # Step 2.2: Download the historical daily csv of the four stations
@@ -194,19 +209,37 @@ smn$doy <- doy_365(smn$date)
 smn <- left_join(smn, rsw, by = c("station", "doy"))
 stopifnot(!anyNA(smn$rsw_cc))
 
-# Step 2.5: Simulate Rg with the step 1 model (and check it against observed Rg)
-smn$rg_sim <- predict_rf(rg_fit, smn, min = 0)
-write.csv(smn |> mutate(pred = rg_sim) |> group_by(station) |> summ(rg_obs),
-          here("tables", "rg_check_smn.csv"), row.names = FALSE)
+# Step 2.5: Rn is trained on observed Rg
+smn$rg <- smn$rg_obs
 
 # Step 2.6: Leave-one-station-out CV over the four stations (no clipping, Rn can be negative)
-cv_rn <- bind_rows(lapply(smn_stations, function(st) {
+rn_cv_fits <- lapply(setNames(smn_stations, smn_stations), function(st) {
   message("CV Rn: ", st)
-  trn <- smn[smn$station != st, ]; tst <- smn[smn$station == st, ]
-  data.frame(tst[c("station", "elev", "date", "rn")], pred = predict_rf(fit_rf(trn, fml_rn), tst))
+  fit_rf(smn[smn$station != st, ], fml_rn)
+})
+cv_rn <- bind_rows(lapply(smn_stations, function(st) {
+  tst <- smn[smn$station == st, ]
+  data.frame(tst[c("station", "elev", "date", "rn")], pred = predict_rf(rn_cv_fits[[st]], tst))
 }))
 write.csv(cv_rn |> summ(rn), here("tables", "rn_cv_overall.csv"), row.names = FALSE)
 write.csv(cv_rn |> group_by(station, elev) |> summ(rn), here("tables", "rn_cv_station.csv"),
+          row.names = FALSE)
+
+# Step 2.6b: Full chain per model chain, as applied in 06: Rg of each chain's step 1 model
+# on the observed SwissMetNet weather -> Rn of the held-out station's CV model
+smn_chain <- bind_rows(lapply(chains, function(ch)
+  data.frame(chain = ch, smn[setdiff(names(smn), "rg")],
+             rg = predict_rf(rg_fits[[ch]], smn, min = 0))))
+write.csv(smn_chain |> mutate(pred = rg) |> group_by(chain, station) |> summ(rg_obs),
+          here("tables", "rg_check_smn.csv"), row.names = FALSE)
+
+cv_rn_chain <- bind_rows(lapply(smn_stations, function(st) {
+  tst <- smn_chain[smn_chain$station == st, ]
+  data.frame(tst[c("chain", "station", "elev", "date", "rn")], pred = predict_rf(rn_cv_fits[[st]], tst))
+}))
+write.csv(cv_rn_chain |> group_by(chain) |> summ(rn), here("tables", "rn_cv_chain.csv"),
+          row.names = FALSE)
+write.csv(cv_rn_chain |> group_by(chain, station) |> summ(rn), here("tables", "rn_cv_chain_station.csv"),
           row.names = FALSE)
 
 # Step 2.7: Final Rn random forest on all four stations

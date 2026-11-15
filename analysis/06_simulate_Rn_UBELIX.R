@@ -56,7 +56,9 @@ stopifnot(compareGeom(r_tasmin, r_tasmax), compareGeom(r_tasmin, r_pr),
           nlyr(r_tasmin) == n_days)
 
 dir_model <- here("data", "radiation_models")
-rg_model  <- readRDS(file.path(dir_model, "rg_model_rf.rds"))
+rg_file   <- file.path(dir_model, paste0("rg_model_rf_", toupper(model), ".rds"))   # Rg model of this chain
+if (!file.exists(rg_file)) stop("No Rg model for model chain ", model, ": ", rg_file)
+rg_model  <- readRDS(rg_file)
 rn_model  <- readRDS(file.path(dir_model, "rn_model_rf.rds"))
 
 doy      <- rep(1:365, length.out = n_days)       # 365_day calendar
@@ -95,9 +97,9 @@ process_block <- function(s) {
     ok <- complete.cases(d)
     d  <- d[ok, ]
 
-    # step 1: Rg (clipped at 0, as in 05_ubelix_model_Rn.R)
-    d$rg_sim <- pmax(predict(rg_model$model, d, num.threads = n_threads)$predictions, 0)
-    # step 2: Rn
+    # step 1: Rg with the model of this chain (clipped at 0, as in 05_model_Rn_UBELIX.R)
+    d$rg <- pmax(predict(rg_model$model, d, num.threads = n_threads)$predictions, 0)
+    # step 2: Rn (one model for all chains)
     rn <- rep(NA_real_, length(ok))
     rn[ok] <- predict(rn_model$model, d, num.threads = n_threads)$predictions
 
@@ -111,7 +113,7 @@ create_nc(tmp_file, "rn", "W m-2", "Daily mean net radiation", dim_time,
           lon = lon, lat = lat,
           chunks   = c(length(E_vals), block_rows, 365),   # one chunk = one block of rows x one year
           var_atts = list(standard_name = "surface_net_downward_radiative_flux",
-                          method = "Two-step random forest: Rg ~ Tmin + Tmax + Prec + Rsw-cc + elevation (CH2025 DAILY_LOCAL), Rn ~ Rg + Tmin + Tmax + Prec + Rsw-cc (SwissMetNet ALT, MAG, PAY, TAE)"),
+                          method = "Two-step random forest: Rg ~ Tmin + Tmax + Prec + Rsw-cc + elevation, one model per model chain (CH2025 DAILY_LOCAL), Rn ~ Rg + Tmin + Tmax + Prec + Rsw-cc, trained with observed Rg (SwissMetNet ALT, MAG, PAY, TAE)"),
           glob_atts = list(title                 = "Daily net radiation simulated from Climate CH2025 DAILY-GRIDDED (tasmin, tasmax, pr)",
                            GWL                   = toupper(period),
                            modelchain            = toupper(model),
