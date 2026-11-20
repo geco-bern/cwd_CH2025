@@ -7,7 +7,7 @@
 #SBATCH --time=00:30:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=8G
-#SBATCH --output=pcwd_annmax_%A_%a.log
+#SBATCH --output=ubelix_logs/pcwd_annmax_%A_%a.log
 
 # annual maximum PCWD of every cell on the CH2025 1 km grid, following geco-bern/cwd_global
 # the grid is processed in blocks of rows, cells outside the domain stay NA

@@ -6,7 +6,7 @@
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=2G
-#SBATCH --output=model_Rn_%j.log
+#SBATCH --output=ubelix_logs/model_Rn_%j.log
 
 # two step approach: first train one global radiation (Rg) random forest per model chain on the CH2025 daily local data,
 # then train one net radiation (Rn) random forest on observed Rg at four SwissMetNet stations

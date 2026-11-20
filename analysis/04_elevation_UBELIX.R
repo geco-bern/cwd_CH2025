@@ -5,7 +5,7 @@
 #SBATCH --partition=cpu-invest
 #SBATCH --time=01:00:00
 #SBATCH --mem-per-cpu=8G
-#SBATCH --output=elevation_%j.log
+#SBATCH --output=ubelix_logs/elevation_%j.log
 
 # Download DHM25 and prepare the elevation (LV03, 200 m) for matching with the CH2025 gridded climate files (LV95, 1 km, NetCDF).
 # creates a .tif file with 1 km grid (LV95) and one layer "elv" (elevation in m)

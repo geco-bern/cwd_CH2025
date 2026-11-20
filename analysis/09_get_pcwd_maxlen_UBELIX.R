@@ -7,7 +7,7 @@
 #SBATCH --time=00:30:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=8G
-#SBATCH --output=pcwd_maxlen_%A_%a.log
+#SBATCH --output=ubelix_logs/pcwd_maxlen_%A_%a.log
 
 # maximum length of a PCWD event within each year for every cell on the CH2025 1 km grid
 # length = longest run of consecutive days with PCWD > 0, counted separately in each year,

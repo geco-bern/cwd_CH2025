@@ -6,7 +6,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=4G
-#SBATCH --output=eliminate_NA_CH2025_%j.log
+#SBATCH --output=ubelix_logs/eliminate_NA_CH2025_%j.log
 
 # Fill missing values in all DAILY_GRIDDED files with monthly means
 # Cells that are NA on every day (outside Switzerland) are ignored.

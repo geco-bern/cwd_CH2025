@@ -65,6 +65,8 @@ The following data were obtained from external sources and are stored in `data-r
 ├── tables/                  <- folder for tables produced by the repository (gap filling,
 |                               cross-validation of the radiation models)
 │
+├── ubelix_logs/             <- SLURM log files of the UBELIX jobs (not on GitHub)
+│
 ├── vignettes/               <- R markdown files
 │   ├── Proposal.Rmd         <- Thesis proposal: context, objective, methods, workflow and timeline
 │   └── references.bib       <- bibliography file for .Rmd compilation

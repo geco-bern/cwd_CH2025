@@ -7,7 +7,7 @@
 #SBATCH --time=4:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=2G
-#SBATCH --output=simulate_Rn_%A_%a.log
+#SBATCH --output=ubelix_logs/simulate_Rn_%A_%a.log
 
 # applies the two-step random forest on the CH2025 daily grid:
 # Tmin, Tmax, Prec, Rsw-cc, elevation -> Rg (step 1) -> Rn (step 2), written to one NetCDF file

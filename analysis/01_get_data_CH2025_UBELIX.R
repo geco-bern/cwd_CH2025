@@ -6,7 +6,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=6G
-#SBATCH --output=get_CH2025_%j.log
+#SBATCH --output=ubelix_logs/get_CH2025_%j.log
 
 # Download Climate CH2025 files via the STAC API into <working directory>/data-raw/CH2025/
 # DAILY_GRIDDED/ all netCDF files

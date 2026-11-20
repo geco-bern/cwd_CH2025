@@ -7,7 +7,7 @@
 #SBATCH --time=06:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=2G
-#SBATCH --output=apply_pcwd_%A_%a.log
+#SBATCH --output=ubelix_logs/apply_pcwd_%A_%a.log
 
 # calculate potential cumulative water deficit (PCWD) on the grid using cwd::cwd() with simulated net radiation (Rn) and air pressure from elevation
 #   PET  = cwd::pet(Rn, tas, patm)          (Priestley-Taylor, patm from elevation)
