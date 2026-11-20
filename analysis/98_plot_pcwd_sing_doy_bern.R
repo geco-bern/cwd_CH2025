@@ -1,6 +1,5 @@
-# daily PCWD against day of year for the grid cell of Bern-Zollikofen,
-# one light line per year (all 30 years of each period in one plot) and a dark line for the
-# 30-year mean per day of year; reference period in blue, GWL in orange;
+# daily PCWD against day of year for the grid cell of Bern-Zollikofen, one GWL period of one model chain:
+# one line per year, all years in grey except a few highlighted years in different colours
 # the plot is shown and saved to figures/
 
 library(here)
@@ -15,74 +14,60 @@ site    <- "Bern-Zollikofen"
 site_E  <- 2601934                                # CH1903+ / LV95
 site_N  <- 1204410
 
-# one row per period: label, colour of the single years (light) and of the mean (dark)
-periods <- data.frame(
-  period    = c("ref91-20", "gwl2.0"),
-  label     = c("Reference 1991-2020", "GWL 2.0 °C"),
-  col_years = c("#b7d3f6", "#f5c3a9"),
-  col_mean  = c("#0d366b", "#7a2a0c"))
+period  <- "gwl2.0"
+label   <- "GWL 2.0 °C"
 
-pcwd_file <- function(period) here("data", "pcwd", sprintf("grid_ch_pcwd_%s_%s.nc", model, period))
+# highlighted years and their colours (Okabe-Ito palette, distinguishable with colour vision deficiency)
+hl_years <- c(1, 5, 10, 15, 20, 25, 30)
+hl_cols  <- c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#000000")
+col_other <- "grey80"                             # all other years
+
+pcwd_file <- here("data", "pcwd", sprintf("grid_ch_pcwd_%s_%s.nc", model, period))
 
 # ---- 2. Daily PCWD of the cell that contains the site --------------------------
 iE <- which.min(abs(E_vals - site_E))             # E_vals, N_vals are cell centres
 iN <- which.min(abs(N_vals - site_N))
 n_years <- n_days / 365
 
-d <- do.call(rbind, lapply(seq_len(nrow(periods)), function(i) {
-  nc   <- nc_open(pcwd_file(periods$period[i]))
-  pcwd <- ncvar_get(nc, "pcwd", start = c(iE, iN, 1), count = c(1, 1, -1))
-  nc_close(nc)
-  stopifnot(length(pcwd) == n_days, !anyNA(pcwd))
+nc   <- nc_open(pcwd_file)
+pcwd <- ncvar_get(nc, "pcwd", start = c(iE, iN, 1), count = c(1, 1, -1))
+nc_close(nc)
+stopifnot(length(pcwd) == n_days, !anyNA(pcwd))
 
-  data.frame(period = periods$label[i],
-             year   = rep(1:n_years, each = 365),   # 365_day calendar, no Feb 29
-             doy    = rep(1:365, times = n_years),
-             pcwd   = pcwd)
-}))
-d$line   <- paste(d$period, d$year)               # one line per period and year
-d$series <- paste0(d$period, ", single years")
+d <- data.frame(year = rep(1:n_years, each = 365),   # 365_day calendar, no Feb 29
+                doy  = rep(1:365, times = n_years),
+                pcwd = pcwd)
 
-# 30-year mean per day of year of each period
-d_mean <- aggregate(pcwd ~ period + doy, d, mean)
-d_mean$series <- paste0(d_mean$period, ", 30-year mean")
-
-# colours and legend order: single years and mean of each period
-series_cols <- setNames(c(rbind(periods$col_years, periods$col_mean)),
-                        c(rbind(paste0(periods$label, ", single years"),
-                                paste0(periods$label, ", 30-year mean"))))
+# series: "Year 1", "Year 5", ... for the highlighted years, "Other years" for all others
+series_cols <- c(setNames(hl_cols, paste("Year", hl_years)), "Other years" = col_other)
+d$series <- ifelse(d$year %in% hl_years, paste("Year", d$year), "Other years")
+d$series <- factor(d$series, levels = names(series_cols))
 
 # ---- 3. Plot ---------------------------------------------------------------
 month_start <- cumsum(c(1, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30))   # doy of the 1st
 
-# draw the periods in the order of `periods` (reference first), means on top of all years
-d$line        <- factor(d$line, levels = unique(d$line))
-d$series      <- factor(d$series, levels = names(series_cols))
-d_mean$series <- factor(d_mean$series, levels = names(series_cols))
-
-p <- ggplot(d, aes(doy, pcwd, colour = series)) +
-  geom_line(aes(group = line), linewidth = 0.3) +
-  geom_line(data = d_mean, aes(group = period), linewidth = 1) +
+p <- ggplot(d, aes(doy, pcwd, colour = series, group = year)) +
+  geom_line(data = d[!d$year %in% hl_years, ], linewidth = 0.3) +        # grey years below
+  geom_line(data = d[d$year %in% hl_years, ], linewidth = 0.7) +         # highlighted years on top
   scale_x_continuous(breaks = month_start, labels = month.abb,
                      limits = c(1, 365), expand = expansion(add = 2)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   scale_colour_manual(values = series_cols, breaks = names(series_cols), name = NULL) +
-  guides(colour = guide_legend(override.aes = list(linewidth = rep(c(0.6, 1.2), nrow(periods))))) +
-  labs(title    = sprintf("Daily PCWD at %s, %s, %s", site, toupper(model),
-                          paste(periods$label, collapse = " and ")),
-       subtitle = sprintf("Grid cell E %d / N %d (LV95), all 30 years of each period and their mean per day of year, deficit reset 50 mm below the event peak",
-                          E_vals[iE], N_vals[iN]),
+  guides(colour = guide_legend(override.aes = list(linewidth = c(rep(1, length(hl_years)), 0.6)))) +
+  labs(title    = sprintf("Daily PCWD at %s, %s, %s", site, toupper(model), label),
+       subtitle = sprintf("Grid cell E %d / N %d (LV95), all 30 years of the period, years %s highlighted, deficit reset 50 mm below the event peak",
+                          E_vals[iE], N_vals[iN], paste(hl_years, collapse = ", ")),
        x = NULL, y = "PCWD (mm)") +
   theme_minimal(base_size = 11) +
   theme(panel.grid.minor   = element_blank(),
         panel.grid.major.x = element_line(colour = "grey92"),
         panel.grid.major.y = element_line(colour = "grey92"),
-        plot.subtitle      = element_text(colour = "#52514e"),
+        plot.subtitle      = element_text(colour = "#52514e", size = 9),
         legend.text        = element_text(size = 9))
 
 print(p)
 
 # ---- 4. Save ---------------------------------------------------------------
 dir.create(here("figures"), showWarnings = FALSE)
-ggsave(here("figures", sprintf("pcwd_doy_bern_%s_%s.jpg", model, paste(periods$period, collapse = "_"))),
+ggsave(here("figures", sprintf("pcwd_doy_bern_%s_%s_years.jpg", model, period)),
        p, width = 10, height = 5.5, dpi = 300, bg = "white")
