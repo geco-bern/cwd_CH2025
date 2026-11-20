@@ -1,8 +1,10 @@
-# run 07_apply_pcwd_UBELIX.R first to create the daily PCWD grids
-# daily PCWD for the grid cell of Bern-Zollikofen as a circle plot: one full turn = one year
+# run 07_apply_pcwd_UBELIX.R first to create the daily PCWD grids of all model chains and periods
+# daily PCWD for the grid cell of Bern-Zollikofen as circle plots: one full turn = one year
 # (1 January at the top, clockwise), distance from the centre = PCWD;
-# reference period as 30-year mean per day of year (blue), GWL 2.0 as three single years (orange)
-# the plot is shown and saved to figures/
+# one circle per period (reference period and the four GWLs) with all 30 years of all model chains
+# as thin lines and the mean over all years and model chains per day of year as a thick line
+# one figure per period and one figure with all periods stacked, all with the same radial scale;
+# reference grey, GWLs yellow to dark red (as in 94_ and 96_)
 
 library(here)
 library(ncdf4)
@@ -11,78 +13,98 @@ library(ggplot2)
 source(here("R", "nc_grid_ch.R"))                 # grid layout (E_vals, N_vals, n_days)
 
 # ---- 1. Settings ----------------------------------------------------------
-model    <- "clmcom-cclm4-cccma"
-site     <- "Bern-Zollikofen"
-site_E   <- 2601934                               # CH1903+ / LV95
-site_N   <- 1204410
+site    <- "Bern-Zollikofen"
+site_E  <- 2601934                                # CH1903+ / LV95
+site_N  <- 1204410
 
-ref      <- "ref91-20"
-gwl      <- "gwl2.0"
-gwl_lab  <- "GWL 2.0 °C"
-gwl_yrs  <- c(1, 15, 30)                          # single years of the GWL period to show
+periods <- c("ref91-20", "gwl1.5", "gwl2.0", "gwl2.5", "gwl3.0")
+labels  <- c("ref91-20" = "Reference 1991-2020",
+             "gwl1.5"   = "GWL 1.5 °C",
+             "gwl2.0"   = "GWL 2.0 °C",
+             "gwl2.5"   = "GWL 2.5 °C",
+             "gwl3.0"   = "GWL 3.0 °C")
+cols    <- c("ref91-20" = "grey55",               # single years; the mean is drawn in black
+             "gwl1.5"   = "#d4a537",
+             "gwl2.0"   = "#e07b39",
+             "gwl2.5"   = "#c8432b",
+             "gwl3.0"   = "#7f1d1d")
+alpha_years <- 0.12                               # transparency of the single years (many lines)
 
-col_ref  <- "#0d366b"                             # reference mean
-col_yrs  <- c("#f0a27a", "#d0612c", "#7a2a0c")    # GWL years, light to dark
+# ---- 2. Inventory of the PCWD files: grid_ch_pcwd_<model chain>_<period>.nc ---------
+files <- list.files(here("data", "pcwd"), pattern = "^grid_ch_pcwd_.*\\.nc$", full.names = TRUE)
+if (length(files) == 0) stop("No PCWD files in ", here("data", "pcwd"))
+parts <- do.call(rbind, strsplit(sub("\\.nc$", "", basename(files)), "_"))
+inv   <- data.frame(path = files, chain = parts[, 4], period = parts[, 5])
+inv   <- inv[inv$period %in% periods, ]
+print(table(inv$period))                          # 26 model chains per period (24 for GWL 3.0)
 
-pcwd_file <- function(period) here("data", "pcwd", sprintf("grid_ch_pcwd_%s_%s.nc", model, period))
-
-# ---- 2. Daily PCWD of the cell that contains the site --------------------------
+# ---- 3. Daily PCWD of the cell that contains the site, one line per year -------------
 iE <- which.min(abs(E_vals - site_E))             # E_vals, N_vals are cell centres
 iN <- which.min(abs(N_vals - site_N))
 n_years <- n_days / 365
 
-read_pcwd <- function(period) {
-  nc   <- nc_open(pcwd_file(period))
+# day 366 = 1 January of the following year, so that each line closes the circle
+# (not available after the last year, that line ends on 31 December)
+read_years <- function(i) {
+  nc   <- nc_open(inv$path[i])
   pcwd <- ncvar_get(nc, "pcwd", start = c(iE, iN, 1), count = c(1, 1, -1))
   nc_close(nc)
   stopifnot(length(pcwd) == n_days, !anyNA(pcwd))
-  pcwd
+  do.call(rbind, lapply(seq_len(n_years), function(y) {
+    idx <- (y - 1) * 365 + 1:366
+    idx <- idx[idx <= n_days]
+    data.frame(chain = inv$chain[i], period = inv$period[i], year = y,
+               doy = seq_along(idx), pcwd = pcwd[idx])
+  }))
 }
+d <- do.call(rbind, lapply(seq_len(nrow(inv)), read_years))
+d$line <- paste(d$chain, d$year)                  # one line per model chain and year
 
-# day 366 = 1 January of the next year, so that the line closes the circle
-# reference: 30-year mean per day of year (365_day calendar), day 366 = mean of 1 January
-p_ref  <- rowMeans(matrix(read_pcwd(ref), nrow = 365, ncol = n_years))
-d_ref  <- data.frame(series = sprintf("Reference 1991-2020, 30-year mean"),
-                     doy = 1:366, pcwd = c(p_ref, p_ref[1]))
+# mean over all years and model chains per day of year, day 366 = mean of 1 January
+d_mean <- aggregate(pcwd ~ period + doy, d[d$doy <= 365, ], mean)
+d_mean <- rbind(d_mean, transform(d_mean[d_mean$doy == 1, ], doy = 366))
 
-# GWL: single years, day 366 = 1 January of the following year (not available after the last year)
-p_gwl  <- read_pcwd(gwl)
-d_gwl  <- do.call(rbind, lapply(gwl_yrs, function(y) {
-  idx <- (y - 1) * 365 + 1:366
-  idx <- idx[idx <= n_days]
-  data.frame(series = sprintf("%s, year %d", gwl_lab, y), doy = seq_along(idx), pcwd = p_gwl[idx])
-}))
+# panel titles with the number of model chains and years
+n_ch  <- tapply(inv$chain, inv$period, function(x) length(unique(x)))
+strip <- setNames(sprintf("%s (%d model chains, %d years)", labels[names(n_ch)], n_ch, n_ch * n_years),
+                  names(n_ch))
+strip <- strip[intersect(periods, names(strip))]  # panel order: reference first
+d$panel      <- factor(strip[d$period], levels = strip)
+d_mean$panel <- factor(strip[d_mean$period], levels = strip)
+r_max <- max(d$pcwd)                              # same radial scale in all figures
 
-d <- rbind(d_ref, d_gwl)
-series_cols <- setNames(c(col_ref, col_yrs), c(d_ref$series[1], unique(d_gwl$series)))
-d$series    <- factor(d$series, levels = names(series_cols))
-
-# ---- 3. Plot ---------------------------------------------------------------
+# ---- 4. Plot function ----------------------------------------------------------
 month_start <- cumsum(c(1, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30))   # doy of the 1st
 
-p <- ggplot(d, aes(doy, pcwd, colour = series)) +
-  geom_line(aes(linewidth = series)) +
-  coord_polar(theta = "x", start = 0, direction = 1) +        # 1 January at the top, clockwise
-  scale_x_continuous(breaks = month_start, labels = month.abb, limits = c(1, 366)) +
-  scale_y_continuous(limits = c(0, max(d$pcwd) * 1.05)) +
-  scale_colour_manual(values = series_cols, name = NULL) +
-  scale_linewidth_manual(values = setNames(c(1.2, 0.6, 0.6, 0.6), names(series_cols)), name = NULL) +
-  guides(colour = guide_legend(ncol = 1), linewidth = guide_legend(ncol = 1)) +
-  labs(title    = sprintf("Daily PCWD at %s, %s", site, toupper(model)),
-       subtitle = sprintf("Reference 1991-2020 (30-year mean) and %s (single years %s)\nGrid cell E %d / N %d (LV95), distance from the centre = PCWD (mm)",
-                          gwl_lab, paste(gwl_yrs, collapse = ", "), E_vals[iE], N_vals[iN]),
-       x = NULL, y = "PCWD (mm)") +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid.minor = element_blank(),
-        panel.grid.major = element_line(colour = "grey88"),
-        axis.text.x      = element_text(size = 10, colour = "grey30"),
-        plot.subtitle    = element_text(colour = "#52514e", size = 9),
-        legend.position  = "bottom",
-        legend.text      = element_text(size = 9))
+plot_circle <- function(dd, dm) {
+  ggplot(dd, aes(doy, pcwd)) +
+    geom_line(aes(group = line, colour = cols[period]), linewidth = 0.25, alpha = alpha_years) +
+    geom_line(data = dm, colour = "black", linewidth = 1) +
+    coord_polar(theta = "x", start = 0, direction = 1) +        # 1 January at the top, clockwise
+    scale_colour_identity() +
+    scale_x_continuous(breaks = month_start, labels = month.abb, limits = c(1, 366)) +
+    scale_y_continuous(limits = c(0, r_max * 1.02)) +
+    labs(x = NULL, y = "PCWD (mm)") +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(colour = "grey88"),
+          axis.text.x      = element_text(size = 10, colour = "grey30"),
+          strip.text       = element_text(face = "bold", size = 12),
+          plot.title       = element_text(face = "bold", size = 12, hjust = 0.5))
+}
 
-print(p)
-
-# ---- 4. Save ---------------------------------------------------------------
 dir.create(here("figures"), showWarnings = FALSE)
-ggsave(here("figures", sprintf("pcwd_doy_bern_circle_%s_%s_%s.jpg", model, ref, gwl)),
-       p, width = 7.5, height = 8.5, dpi = 300, bg = "white")
+
+# ---- 5. One figure per period ---------------------------------------------------
+for (per in names(strip)) {
+  p <- plot_circle(d[d$period == per, ], d_mean[d_mean$period == per, ]) + labs(title = strip[[per]])
+  ggsave(here("figures", sprintf("pcwd_doy_bern_circle_%s.jpg", per)),
+         p, width = 6.5, height = 6.5, dpi = 300, bg = "white")
+  message("Saved figure for ", per)
+}
+
+# ---- 6. All periods stacked ---------------------------------------------------
+p_all <- plot_circle(d, d_mean) + facet_wrap(~panel, ncol = 1)
+print(p_all)
+ggsave(here("figures", "pcwd_doy_bern_circle_all.jpg"),
+       p_all, width = 6.5, height = 6 * length(strip) + 0.5, dpi = 300, bg = "white", limitsize = FALSE)
