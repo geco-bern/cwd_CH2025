@@ -1,6 +1,5 @@
 # daily PCWD against day of year for the grid cell of Bern-Zollikofen, one GWL period of one model chain:
-# one line per year, all years in grey except a few highlighted years in different colours,
-# labelled at their annual maximum (needs the ggrepel package)
+# one line per year, all years in grey except a few highlighted years in different colours
 # the plot is shown and saved to figures/
 
 library(here)
@@ -44,27 +43,15 @@ series_cols <- c(setNames(hl_cols, paste("Year", hl_years)), "Other years" = col
 d$series <- ifelse(d$year %in% hl_years, paste("Year", d$year), "Other years")
 d$series <- factor(d$series, levels = names(series_cols))
 
-# labels of the highlighted years, placed at the annual maximum of each year
-d_lab <- do.call(rbind, lapply(hl_years, function(y) {
-  x <- d[d$year == y, ]
-  x[which.max(x$pcwd), ]
-}))
-
 # ---- 3. Plot ---------------------------------------------------------------
 month_start <- cumsum(c(1, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30))   # doy of the 1st
 
 p <- ggplot(d, aes(doy, pcwd, colour = series, group = year)) +
   geom_line(data = d[!d$year %in% hl_years, ], linewidth = 0.3) +        # grey years below
   geom_line(data = d[d$year %in% hl_years, ], linewidth = 0.7) +         # highlighted years on top
-  geom_point(data = d_lab, size = 1.5) +
-  ggrepel::geom_text_repel(data = d_lab, aes(label = series), size = 3.5, fontface = "bold",
-                           nudge_y = 0.06 * max(d$pcwd), min.segment.length = 0,
-                           segment.size = 0.3, box.padding = 0.4, seed = 1,
-                           bg.colour = "white", bg.r = 0.15) +                  # white outline
-
   scale_x_continuous(breaks = month_start, labels = month.abb,
                      limits = c(1, 365), expand = expansion(add = 2)) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +            # room for the labels
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   scale_colour_manual(values = series_cols) +
   labs(title = sprintf("Daily PCWD at %s, %s, %s", site, toupper(model), label),
        x = NULL, y = "PCWD (mm)") +

@@ -8,7 +8,6 @@ use_pkgs <- c(
   "here",
   "dplyr",
   "ggplot2",
-  "ggrepel",
   "ranger",
   "remotes"
 )

@@ -88,7 +88,6 @@ use_pkgs <- c(
   "meteoland",
   "dplyr",
   "ggplot2",
-  "ggrepel",
   "ranger",
   "readr",
   "stringr",
