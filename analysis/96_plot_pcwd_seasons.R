@@ -19,7 +19,7 @@
 # the combined table is saved to tables/, the figure to figures/
 
 library(here)
-library(terra)
+library(terra)                                    # needed by R/nc_grid_ch.R
 library(ncdf4)
 library(parallel)
 library(ggplot2)
@@ -63,20 +63,25 @@ season    <- c("DJF", "DJF", "MAM", "MAM", "MAM", "JJA", "JJA", "JJA", "SON", "S
 # ---- 3. Seasonal mean over the domain, one file at a time ---------------------------
 # sum and number of valid cell-days per season, accumulated over the blocks of rows;
 # cells outside the domain are NA and not counted, so every cell of the domain has the same weight
+# read with ncdf4, not terra: terra (GDAL) keeps a block cache of several GB per process,
+# which ran out of memory with many processes in parallel
 season_means <- function(i) {
-  r <- rast(inv$path[i], subds = "pcwd")
-  stopifnot(nlyr(r) == n_days)
+  nc <- nc_open(inv$path[i])
+  on.exit(nc_close(nc))
+  nN <- nc$dim$N$len
+  stopifnot(nc$dim$time$len == n_days)
   tot <- setNames(numeric(4), names(seasons))
   cnt <- setNames(numeric(4), names(seasons))
 
-  readStart(r)
-  on.exit(readStop(r))
-  for (s in seq(1, nrow(r), by = block_rows)) {
-    x <- readValues(r, row = s, nrows = min(block_rows, nrow(r) - s + 1), mat = TRUE)   # cells x days
+  for (s in seq(1, nN, by = block_rows)) {                  # blocks match the chunks of 07 (10 rows)
+    n <- min(block_rows, nN - s + 1)
+    x <- ncvar_get(nc, "pcwd", start = c(1, s, 1), count = c(-1, n, -1), collapse_degen = FALSE)
+    x <- matrix(x, ncol = n_days)                           # cells x days
     day_sum <- colSums(x, na.rm = TRUE)
     day_n   <- colSums(!is.na(x))
     tot <- tot + tapply(day_sum, season, sum)[names(seasons)]
     cnt <- cnt + tapply(day_n,   season, sum)[names(seasons)]
+    rm(x); gc(verbose = FALSE)                              # free the block before reading the next
   }
 
   res <- data.frame(chain = inv$chain[i], period = inv$period[i], season = names(seasons),
