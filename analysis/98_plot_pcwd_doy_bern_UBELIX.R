@@ -3,7 +3,8 @@
 #   2. per period: ensemble mean over the model chains (line), interquartile range (dark band)
 #      and range min-max (light band) of the model chain means
 # one figure per period (reference period and the four GWLs), all with the same y axis;
-# the GWL figures also show the ensemble mean of the reference period (dashed) for comparison
+# the GWL figures also show the ensemble mean of the reference period (dashed) for comparison;
+# one more figure with all periods stacked (reference on top, then GWL 1.5 to 3.0)
 # the 30-year means per model chain are saved to tables/, the figures to figures/
 
 library(here)
@@ -114,3 +115,52 @@ for (per in periods) {
          p, width = 10, height = 5.5, dpi = 300, bg = "white")
   message("Saved figure for ", per)
 }
+
+# ---- 6. All periods stacked in one figure ----------------------------------------
+# panel labels with the number of model chains, panels in the order of `periods`
+per_avail <- periods[periods %in% ens$period]
+n_ch      <- sapply(per_avail, function(per) ens$n_chains[ens$period == per][1])
+strip     <- setNames(sprintf("%s (%d model chains)", labels[per_avail], n_ch), per_avail)
+
+ens$panel <- factor(strip[ens$period], levels = strip)
+ens$col   <- ifelse(ens$period == "ref91-20", col_ref, col_gwl)
+
+# reference ensemble mean repeated in every GWL panel
+ref_lines <- do.call(rbind, lapply(setdiff(per_avail, "ref91-20"), function(per)
+  data.frame(ens_ref[c("doy", "mean")], panel = strip[[per]])))
+ref_lines$panel <- factor(ref_lines$panel, levels = strip)
+
+p_all <- ggplot(ens, aes(doy)) +
+  geom_ribbon(aes(ymin = min, ymax = max, fill = col, alpha = "Range of the model chains")) +
+  geom_ribbon(aes(ymin = q25, ymax = q75, fill = col, alpha = "Interquartile range")) +
+  geom_line(aes(y = mean, colour = col, linetype = "Ensemble mean"), linewidth = 0.8) +
+  geom_line(data = ref_lines, aes(y = mean, linetype = "Ensemble mean, reference 1991-2020"),
+            colour = col_ref, linewidth = 0.5) +
+  facet_wrap(~panel, ncol = 1) +
+  scale_fill_identity() +
+  scale_colour_identity() +
+  scale_alpha_manual(values = c("Interquartile range" = 0.45, "Range of the model chains" = 0.25),
+                     name = NULL) +
+  scale_linetype_manual(values = c("Ensemble mean" = "solid", "Ensemble mean, reference 1991-2020" = "dashed"),
+                        name = NULL) +
+  guides(linetype = guide_legend(override.aes = list(colour = c("grey20", col_ref)), order = 1),
+         alpha    = guide_legend(override.aes = list(fill = "grey30"), order = 2)) +
+  scale_x_continuous(breaks = month_start, labels = month.abb,
+                     limits = c(1, 365), expand = expansion(add = 2)) +
+  scale_y_continuous(limits = c(0, y_max * 1.05), expand = c(0, 0)) +
+  labs(title    = sprintf("Daily PCWD at %s, model chain ensemble", site),
+       subtitle = sprintf("30-year mean per day of year; grid cell E %d / N %d (LV95), deficit reset 50 mm below the event peak",
+                          E_vals[iE], N_vals[iN]),
+       x = NULL, y = "PCWD (mm)") +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid.minor   = element_blank(),
+        panel.grid.major   = element_line(colour = "grey92"),
+        panel.spacing      = unit(0.8, "lines"),
+        strip.text         = element_text(hjust = 0, face = "bold"),
+        plot.subtitle      = element_text(colour = "#52514e", size = 9),
+        legend.position    = "bottom",
+        legend.text        = element_text(size = 9))
+
+ggsave(here("figures", "pcwd_doy_bern_ensemble_all.jpg"),
+       p_all, width = 9, height = 2.3 * length(per_avail) + 1.5, dpi = 300, bg = "white")
+message("Saved stacked figure")
