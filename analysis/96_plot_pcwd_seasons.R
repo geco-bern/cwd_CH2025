@@ -5,8 +5,7 @@
 #   2. per period and season: ensemble mean and spread over the model chains
 # one panel per season (2 x 2, same y axis), in the style of the CH2025 figures:
 # box = spread of the model chains, line = ensemble mean; reference grey, GWLs yellow to dark red
-# per-file results are kept in data/pcwd_seasons/ and reused; the combined table is saved to tables/,
-# the figure to figures/
+# the figure is saved to figures/
 
 library(here)
 library(ncdf4)
@@ -32,16 +31,11 @@ cols    <- c("ref91-20" = "grey55",               # reference grey, GWLs yellow 
              "gwl3.0"   = "#7f1d1d")
 seasons <- c(DJF = "winter (DJF)", MAM = "spring (MAM)", JJA = "summer (JJA)", SON = "autumn (SON)")
 
-dir_cache <- here("data", "pcwd_seasons")         # one small csv per model chain and period
-out_csv   <- here("tables", "pcwd_seasons_ch.csv")
-dir.create(dir_cache, showWarnings = FALSE, recursive = TRUE)
-
 # ---- 2. Inventory of the PCWD files: grid_ch_pcwd_<model chain>_<period>.nc ---------
 files <- list.files(here("data", "pcwd"), pattern = "^grid_ch_pcwd_.*\\.nc$", full.names = TRUE)
 parts <- do.call(rbind, strsplit(sub("\\.nc$", "", basename(files)), "_"))
 inv   <- data.frame(path = files, chain = parts[, 4], period = parts[, 5])
 inv   <- inv[inv$period %in% periods, ]
-inv$cache <- file.path(dir_cache, sub("\\.nc$", ".csv", basename(inv$path)))
 print(table(inv$period))                          # 26 model chains per period (24 for GWL 3.0)
 
 # season of every day (365_day calendar, 30 years)
@@ -68,19 +62,12 @@ season_means <- function(i) {
     cnt <- cnt + tapply(colSums(!is.na(x)),       season, sum)[names(seasons)]
   }
 
-  res <- data.frame(chain = inv$chain[i], period = inv$period[i], season = names(seasons),
-                    pcwd = as.numeric(tot / cnt), n_cell_days = as.numeric(cnt))
-  write.csv(res, inv$cache[i], row.names = FALSE)
   message("Done: ", basename(inv$path[i]))
+  data.frame(chain = inv$chain[i], period = inv$period[i], season = names(seasons),
+             pcwd = as.numeric(tot / cnt))
 }
 
-todo <- which(!file.exists(inv$cache))
-message(length(todo), " of ", nrow(inv), " files to process")
-for (i in todo) season_means(i)
-
-chains <- do.call(rbind, lapply(inv$cache, read.csv))
-dir.create(here("tables"), showWarnings = FALSE)
-write.csv(chains, out_csv, row.names = FALSE)
+chains <- do.call(rbind, lapply(seq_len(nrow(inv)), season_means))
 
 # ---- 4. Ensemble statistics over the model chains, per period and season ------------
 ens <- do.call(rbind, lapply(split(chains, list(chains$period, chains$season), drop = TRUE), function(x)
