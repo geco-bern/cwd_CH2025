@@ -34,16 +34,19 @@ crs_atts <- list(grid_mapping_name                 = "oblique_mercator",
                  spatial_ref                       = crs("EPSG:2056"))
 
 # ---- Create an empty NetCDF file with this layout ---------------------------------
-# lon, lat: E x N matrices (N south to north); dim3: dim_time or another 3rd dimension
+# lon, lat: E x N matrices (N south to north); dim3: dim_time or another 3rd dimension,
+# NULL for a 2D variable (E x N only); prec, missval: type and fill value of the variable
 create_nc <- function(file, var, units, longname, dim3, lon, lat, chunks = NA,
-                      var_atts = list(), glob_atts = list(), source = NA) {
+                      var_atts = list(), glob_atts = list(), source = NA,
+                      prec = "float", missval = fill) {
   var_lon <- ncvar_def("lon", "degrees_east",  list(dim_E, dim_N), prec = "float",
                        longname = "longitude coordinate", compression = 4)
   var_lat <- ncvar_def("lat", "degrees_north", list(dim_E, dim_N), prec = "float",
                        longname = "latitude coordinate", compression = 4)
   var_crs <- ncvar_def("swiss_lv95_coordinates", "", list(), prec = "integer")
-  var_out <- ncvar_def(var, units, list(dim_E, dim_N, dim3), missval = fill,
-                       prec = "float", longname = longname,
+  dims    <- if (is.null(dim3)) list(dim_E, dim_N) else list(dim_E, dim_N, dim3)
+  var_out <- ncvar_def(var, units, dims, missval = missval,
+                       prec = prec, longname = longname,
                        chunksizes = chunks, compression = 4)
 
   nc <- nc_create(file, list(var_lon, var_lat, var_crs, var_out), force_v4 = TRUE)
@@ -52,7 +55,7 @@ create_nc <- function(file, var, units, longname, dim3, lon, lat, chunks = NA,
 
   ncatt_put(nc, "E", "standard_name", "projection_x_coordinate"); ncatt_put(nc, "E", "axis", "X")
   ncatt_put(nc, "N", "standard_name", "projection_y_coordinate"); ncatt_put(nc, "N", "axis", "Y")
-  if (dim3$name == "time") {
+  if (!is.null(dim3) && dim3$name == "time") {
     ncatt_put(nc, "time", "standard_name", "time"); ncatt_put(nc, "time", "axis", "T")
   }
   ncatt_put(nc, "lon", "standard_name", "longitude")

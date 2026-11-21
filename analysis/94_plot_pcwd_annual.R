@@ -7,10 +7,14 @@
 #      so they are not compared year by year)
 # reference grey, GWLs yellow to dark red (as in 96_plot_pcwd_seasons.R);
 # dashed line: median of the reference period
+# third figure: the violins once per biogeographical region (R/biogeoregio_ch.R)
 
 library(here)
 library(ncdf4)
+library(terra)                                    # needed by R/biogeoregio_ch.R
 library(ggplot2)
+source(here("R", "nc_grid_ch.R"))                 # grid layout, needed by biogeoregio_nc()
+source(here("R", "biogeoregio_ch.R"))             # biogeoregio_nc(), by_region()
 
 # ---- 1. Settings ----------------------------------------------------------
 periods <- c("ref91-20", "gwl1.5", "gwl2.0", "gwl2.5", "gwl3.0")
@@ -94,3 +98,53 @@ p_violin <- ggplot(d, aes(period_lab, pcwd, fill = cols[period], colour = cols[p
 
 print(p_violin)
 ggsave(here("figures", "pcwd_annmax_violin_ch.jpg"), p_violin, width = 7, height = 5, dpi = 300, bg = "white")
+
+# ---- 6. Mean annual maximum per biogeographical region, per year ----------------------
+# same as section 3, but the mean is taken over the cells of each region instead of the whole domain;
+# every cell takes the region that contains its centre (cells outside Switzerland are not counted)
+read_annmax_rast <- function(path) {
+  r <- rast(path, subds = "pcwd_annmax")
+  crs(r) <- "EPSG:2056"                           # same CRS as the regions, also if it is not read from the file
+  r
+}
+zones <- biogeoregio_nc()                         # region of every cell, from data/grid_ch_biogeoregio.nc
+
+read_annmax_region <- function(i) {
+  x <- by_region(read_annmax_rast(inv$path[i]), zones, "mean")
+  data.frame(chain = inv$chain[i], period = inv$period[i], region = x$region,
+             n_cells = x$n_cells, year = x$layer, pcwd = x$value)
+}
+dr <- do.call(rbind, lapply(seq_len(nrow(inv)), read_annmax_region))
+write.csv(dr, here("tables", "pcwd_annmax_years_region_ch.csv"), row.names = FALSE)
+
+# ---- 7. Violin plot per period, one panel per biogeographical region ---------------------
+# same as section 5; all panels have the same y axis; dashed line: median of the reference period
+# of each region
+dr$period_lab <- factor(labels[dr$period], levels = labels[periods])
+n_val_r   <- aggregate(pcwd ~ region + period_lab, dr, length)       # values per violin
+ref_med_r <- aggregate(pcwd ~ region, dr[dr$period == "ref91-20", ], median)
+
+p_violin_r <- ggplot(dr, aes(period_lab, pcwd, fill = cols[period], colour = cols[period])) +
+  geom_hline(data = ref_med_r, aes(yintercept = pcwd), colour = cols[["ref91-20"]],
+             linetype = "dashed", linewidth = 0.6) +
+  geom_violin(alpha = 0.45, linewidth = 0.6, width = 0.8, scale = "width", trim = TRUE) +
+  geom_boxplot(width = 0.12, fill = "white", alpha = 1, linewidth = 0.5, outlier.shape = NA) +
+  geom_text(data = n_val_r, aes(period_lab, 0, label = paste0("n = ", pcwd)),
+            inherit.aes = FALSE, vjust = -0.5, size = 3.2, colour = "grey30") +
+  # "free" only to draw the axes in every panel; the limits below keep the same scale in all panels
+  facet_wrap(~region, ncol = 2, scales = "free") +
+  scale_fill_identity() +
+  scale_colour_identity() +
+  scale_y_continuous(limits = c(0, max(dr$pcwd)), expand = expansion(mult = c(0, 0.03))) +
+  labs(x = NULL, y = "Annual maximum PCWD (mm)") +
+  theme_classic(base_size = 12) +
+  theme(panel.grid.major.y = element_line(colour = "grey65", linetype = "dashed", linewidth = 0.4),
+        strip.background   = element_blank(),
+        strip.text         = element_text(face = "bold", size = 14, hjust = 0.5),
+        axis.title.y       = element_text(face = "bold"),
+        axis.text          = element_text(colour = "black"),
+        panel.spacing      = unit(1.5, "lines"))
+
+print(p_violin_r)
+ggsave(here("figures", "pcwd_annmax_violin_region_ch.jpg"), p_violin_r,
+       width = 11, height = 12, dpi = 300, bg = "white")
