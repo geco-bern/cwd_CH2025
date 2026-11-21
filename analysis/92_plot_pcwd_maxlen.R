@@ -5,7 +5,8 @@
 #   2. per period: ensemble mean and spread over the model chains
 # one panel for the complete year, in the style of the CH2025 figures (same layout as 96_plot_pcwd_seasons.R):
 # box = spread of the model chains, line = ensemble mean; reference grey, GWLs yellow to dark red
-# the figure is saved to figures/
+# second figure: violin per period over all years and model chains (same layout as 94_plot_pcwd_annual.R)
+# both figures are saved to figures/
 
 library(here)
 library(ncdf4)
@@ -35,18 +36,23 @@ inv   <- data.frame(path = files, chain = parts[, 5], period = parts[, 6])
 inv   <- inv[inv$period %in% periods, ]
 print(table(inv$period))                          # 26 model chains per period (24 for GWL 3.0)
 
-# ---- 3. Mean over the domain and the 30 years, one file at a time ------------------
+# ---- 3. Mean over the domain per year, one file at a time --------------------------
 # the files are small (one value per cell and year), so each is read at once;
 # cells outside the domain are NA and not counted, so every cell of the domain has the same weight
-maxlen_mean <- function(i) {
+read_maxlen <- function(i) {
   nc <- nc_open(inv$path[i])
   on.exit(nc_close(nc))
-  x <- ncvar_get(nc, "pcwd_maxlen")               # E x N x years
+  x <- ncvar_get(nc, "pcwd_maxlen", collapse_degen = FALSE)   # E x N x years
+  x <- matrix(x, ncol = dim(x)[3])                            # cells x years
   message("Done: ", basename(inv$path[i]))
-  data.frame(chain = inv$chain[i], period = inv$period[i], maxlen = mean(x, na.rm = TRUE))
+  data.frame(chain = inv$chain[i], period = inv$period[i], year = seq_len(ncol(x)),
+             maxlen = colMeans(x, na.rm = TRUE))
 }
+d <- do.call(rbind, lapply(seq_len(nrow(inv)), read_maxlen))
 
-chains <- do.call(rbind, lapply(seq_len(nrow(inv)), maxlen_mean))
+# mean over the 30 years per model chain (the domain is the same in every year,
+# so this equals the mean over all cells and years)
+chains <- aggregate(maxlen ~ chain + period, d, mean)
 
 # ---- 4. Ensemble statistics over the model chains, per period ----------------------
 ens <- do.call(rbind, lapply(split(chains, chains$period), function(x)
@@ -83,3 +89,37 @@ print(p)
 
 dir.create(here("figures"), showWarnings = FALSE)
 ggsave(here("figures", "pcwd_maxlen_ch.jpg"), p, width = 6, height = 4.5, dpi = 300, bg = "white")
+
+# ---- 6. Violin plot per period over all years and model chains (as in 94_plot_pcwd_annual.R) ----
+# per period all 30 years of all model chains are pooled (the placeholder years 0001-0030 are
+# different simulated years in every model chain, so they are not compared year by year)
+# outline: distribution of all years and model chains (kernel density estimate), all violins
+# with the same maximum width (scale = "width") and cut at the smallest and largest value (trim);
+# inner box: median and interquartile range; dashed line: median of the reference period
+labels_v <- c("ref91-20" = "Reference\n1991-2020",
+              "gwl1.5"   = "GWL 1.5 °C",
+              "gwl2.0"   = "GWL 2.0 °C",
+              "gwl2.5"   = "GWL 2.5 °C",
+              "gwl3.0"   = "GWL 3.0 °C")
+d$period_lab <- factor(labels_v[d$period], levels = labels_v[periods])
+n_val   <- aggregate(maxlen ~ period_lab, d, length)                # values per violin
+ref_med <- median(d$maxlen[d$period == "ref91-20"])
+
+p_violin <- ggplot(d, aes(period_lab, maxlen, fill = cols[period], colour = cols[period])) +
+  geom_hline(yintercept = ref_med, colour = cols[["ref91-20"]], linetype = "dashed", linewidth = 0.6) +
+  geom_violin(alpha = 0.45, linewidth = 0.6, width = 0.8, scale = "width", trim = TRUE) +
+  geom_boxplot(width = 0.12, fill = "white", alpha = 1, linewidth = 0.5, outlier.shape = NA) +
+  geom_text(data = n_val, aes(period_lab, 0, label = paste0("n = ", maxlen)),
+            inherit.aes = FALSE, vjust = -0.5, size = 3.2, colour = "grey30") +
+  scale_fill_identity() +
+  scale_colour_identity() +
+  scale_y_continuous(limits = c(0, NA), breaks = seq(0, 360, by = 30),
+                     expand = expansion(mult = c(0, 0.03))) +
+  labs(x = NULL, y = "Max. PCWD event length (days)") +
+  theme_classic(base_size = 12) +
+  theme(panel.grid.major.y = element_line(colour = "grey65", linetype = "dashed", linewidth = 0.4),
+        axis.title.y       = element_text(face = "bold"),
+        axis.text          = element_text(colour = "black"))
+
+print(p_violin)
+ggsave(here("figures", "pcwd_maxlen_violin_ch.jpg"), p_violin, width = 7, height = 5, dpi = 300, bg = "white")
