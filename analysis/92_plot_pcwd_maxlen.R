@@ -71,7 +71,8 @@ p <- ggplot(ens) +
   scale_colour_identity() +
   scale_x_continuous(breaks = seq_along(periods), labels = labels[periods],
                      limits = c(0.5, length(periods) + 0.5), expand = c(0, 0)) +
-  scale_y_continuous(limits = c(0, max(ens$hi)), expand = expansion(mult = c(0, 0.05))) +
+  scale_y_continuous(limits = c(0, max(150, ens$hi)), breaks = seq(0, 360, by = 30),
+                     expand = expansion(mult = c(0, 0.05))) +
   labs(x = NULL, y = "Max. PCWD event length (days)") +
   theme_classic(base_size = 12) +
   theme(panel.grid.major.y = element_line(colour = "grey65", linetype = "dashed", linewidth = 0.4),
