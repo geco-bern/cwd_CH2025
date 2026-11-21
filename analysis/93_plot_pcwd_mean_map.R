@@ -15,11 +15,11 @@
 
 library(here); library(ncdf4); library(terra); library(ggplot2); library(parallel)
 source(here("R", "nc_grid_ch.R"))                 # grid layout (E_vals, N_vals, n_days)
+source(here("R", "pcwd_colours.R"))               # colour classes shared with 91: pcwd_bin(), scale_fill_pcwd()
 
 periods <- c("ref91-20" = "Reference\n1991-2020", "gwl1.5" = "GWL 1.5 °C", "gwl2.0" = "GWL 2.0 °C",
              "gwl2.5" = "GWL 2.5 °C", "gwl3.0" = "GWL 3.0 °C")
 seasons <- c("DJF", "MAM", "JJA", "SON", "annual")
-breaks_all <- c(0, 1, 2, 5, 10, 20, 30, 50, 75, 100, 150, 200, 300, 400, 600)   # colour classes (mm)
 file_rds   <- here("data", "pcwd_mean_maps.rds")
 
 # ---- 1. Ensemble mean maps (cells x seasons per period) ---------------------------
@@ -62,10 +62,7 @@ d  <- d[!is.na(d$pcwd), ]
 d$period <- factor(periods[d$period], levels = periods[names(periods) %in% names(ens)])
 d$season <- factor(d$season, levels = seasons)
 
-v_max <- max(d$pcwd)
-brks  <- c(breaks_all[breaks_all < v_max],
-           if (any(breaks_all >= v_max)) min(breaks_all[breaks_all >= v_max]) else ceiling(v_max))
-d$bin <- cut(d$pcwd, brks, include.lowest = TRUE)
+d$bin <- pcwd_bin(d$pcwd)                          # colour classes of R/pcwd_colours.R
 
 pan <- expand.grid(season = levels(d$season), period = levels(d$period))   # (a), (b), ... row by row
 pan$letter <- sprintf("(%s)", letters[seq_len(nrow(pan))])
@@ -80,8 +77,7 @@ p <- ggplot(d, aes(x, y, fill = bin)) +
             hjust = 0, vjust = 1, size = 3.5) +
   facet_grid(period ~ season, switch = "y") +
   coord_equal(xlim = x_lim, ylim = y_lim, expand = FALSE) +
-  scale_fill_manual(values = setNames(hcl.colors(nlevels(d$bin), "YlOrRd", rev = TRUE), levels(d$bin)),
-                    labels = paste(head(brks, -1), "-", brks[-1]), drop = FALSE, name = "PCWD (mm)") +
+  scale_fill_pcwd(d$bin, "PCWD (mm)") +
   guides(fill = guide_legend(reverse = TRUE, keyheight = unit(0.7, "cm"))) +
   theme_void(base_size = 12) +
   theme(strip.text.x      = element_text(size = 13, margin = margin(b = 4)),
