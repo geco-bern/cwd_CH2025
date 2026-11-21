@@ -107,7 +107,7 @@ read_annmax_rast <- function(path) {
   crs(r) <- "EPSG:2056"                           # same CRS as the regions, also if it is not read from the file
   r
 }
-zones <- biogeoregio_nc()                         # region of every cell, from data/grid_ch_biogeoregio.nc
+zones <- biogeoregio_nc()                         # region of every cell, from data/biogeoregio/grid_ch_biogeoregio.nc
 
 read_annmax_region <- function(i) {
   x <- by_region(read_annmax_rast(inv$path[i]), zones, "mean")

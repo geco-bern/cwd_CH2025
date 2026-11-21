@@ -2,7 +2,7 @@
 # for analyses of the PCWD results per region, e.g.
 #   r_max <- rast(here("data", "pcwd_annmax", "grid_ch_pcwd_annmax_<model>_<period>.nc"),
 #                 subds = "pcwd_annmax")
-#   zones <- biogeoregio_nc()                     # region of every grid cell, from data/grid_ch_biogeoregio.nc
+#   zones <- biogeoregio_nc()                     # region of every grid cell, from data/biogeoregio/grid_ch_biogeoregio.nc
 #   by_region(r_max, zones, "mean")               # mean annual maximum per region and year
 # needs: library(terra), library(here); for biogeoregio_nc() also library(ncdf4) and R/nc_grid_ch.R
 
@@ -52,8 +52,9 @@ biogeoregio_grid <- function(template = rast(nrows = 240, ncols = 370, xmin = 24
 # reads the regions from file; creates the file first if it does not exist yet
 # (same layout as the PCWD files: E x N, N south to north, LV95; region 1-6, -1 outside Switzerland)
 # returns the same categorical SpatRaster as biogeoregio_grid()
-biogeoregio_nc <- function(file = here("data", "grid_ch_biogeoregio.nc")) {
+biogeoregio_nc <- function(file = here("data", "biogeoregio", "grid_ch_biogeoregio.nc")) {
   if (!file.exists(file)) {
+    dir.create(dirname(file), showWarnings = FALSE, recursive = TRUE)
     z <- biogeoregio_grid()                                  # default template = the CH2025 grid
     stopifnot(ncol(z) == length(E_vals), nrow(z) == length(N_vals))
 
